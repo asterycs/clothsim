@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.17.3)
+
+project(clothsim LANGUAGES CXX)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/modules/")
+
+add_subdirectory(src/)
