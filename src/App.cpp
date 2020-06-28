@@ -209,20 +209,15 @@ namespace clothsim
     {
         m_framebuffer.mapForRead(GL::Framebuffer::ColorAttachment{m_phongShader.ObjectIdOutput});
 
-        const Vector2i positionScaled = position * Vector2{framebufferSize()} / Vector2{windowSize()};
-        const Vector2i fbPosition{positionScaled.x(), GL::defaultFramebuffer.viewport().sizeY() - positionScaled.y() - 1};
+        const Vector2i fbPosition{position.x(), m_framebuffer.viewport().sizeY() - position.y() - 1};
+        const Image2D data = m_framebuffer.read(Range2Di::fromSize(fbPosition, {1, 1}), PixelFormat::R32I);
+        const Int selectedVertexId = data.pixels<Int>()[0][0];
 
-        Image2D data = m_framebuffer.read(Range2Di::fromSize(fbPosition, {1, 1}), PixelFormat::R32I);
-
-        Int selectedVertexId = data.pixels<Int>()[0][0];
-
-        (void)selectedVertexId;
-
-        /*if (selectedVertexId >= 0)
+        if (selectedVertexId >= 0)
         {
-            m_objects[m_currentGeom]->togglePinnedVertex(static_cast<UnsignedInt>(selectedVertexId));
+            m_cloth->togglePinnedVertex(static_cast<UnsignedInt>(selectedVertexId));
             Debug{} << "Toggled vertex number " << selectedVertexId;
-        }*/
+        }
     }
 
     void App::pinVertices(const UI::Lasso &lasso)
@@ -236,24 +231,28 @@ namespace clothsim
         const Image2D data = m_framebuffer.read(
             Range2Di({min.x(), m_framebuffer.viewport().sizeY() - max.y() - 1},
                      {max.x(), m_framebuffer.viewport().sizeY() - min.y() - 1}),
-            {GL::PixelFormat::Red, GL::PixelType::Int});
+            PixelFormat::R32I);
 
+        const auto pixels = data.pixels<Int>();
         std::set<UnsignedInt> seenIndices;
 
-        const Vector2i size = max - min;
-        for (Int i = 0; i < size.x() * size.y(); ++i)
+        const Vector2ui size{max - min};
+        for (std::size_t y = 0; y < size.y(); ++y)
         {
-            const Int index = data.pixels<Int>()[0][i];
-
-            // -1 contains no vertex
-            if (index > -1)
+            for (std::size_t x = 0; x < size.x(); ++x)
             {
-                seenIndices.insert(static_cast<UnsignedInt>(index));
+                const Int index = pixels[y][x];
+
+                // -1 means no vertex
+                if (index > -1)
+                {
+                    seenIndices.insert(static_cast<UnsignedInt>(index));
+                }
             }
         }
 
-        //for (UnsignedInt index : seenIndices)
-        //    m_objects[m_currentGeom]->setPinnedVertex(index, pinned);
+        for (const auto index : seenIndices)
+            m_cloth->setPinnedVertex(index, true);
     }
 
     void App::mouseMoveEvent(MouseMoveEvent &event)

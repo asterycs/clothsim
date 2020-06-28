@@ -40,7 +40,7 @@ namespace clothsim
         void drawMesh(const Matrix4 &transformationMatrix, const Magnum::SceneGraph::Camera3D &camera);
         void drawVertexMarkers(const Matrix4 &transformationMatrix, const Magnum::SceneGraph::Camera3D &camera);
 
-        void initVertexMarkers(const std::vector<Vector3> &vertices);
+        void initVertexMarkers();
         void initMeshTriangles(std::vector<Vector3> vertices, std::vector<UnsignedInt> triangleIndices);
 
         bool m_drawVertexMarkers;
@@ -52,11 +52,12 @@ namespace clothsim
         Magnum::GL::Buffer m_triangleBuffer, m_indexBuffer, m_colorBuffer;
         Magnum::GL::Mesh m_triangles;
 
-        std::vector<Magnum::GL::Buffer> m_vertexMarkerVertexBuffer;
-        std::vector<Magnum::GL::Buffer> m_vertexMarkerIndexBuffer;
-        std::vector<Magnum::GL::Mesh> m_vertexMarkerMesh;
+        Magnum::GL::Buffer m_vertexMarkerVertexBuffer;
+        Magnum::GL::Buffer m_vertexMarkerIndexBuffer;
+        Magnum::GL::Mesh m_vertexMarkerMesh;
 
         std::vector<UnsignedInt> m_triangleIndices;
+        std::vector<Vector3> m_indexedVertices;
     };
 } // namespace clothsim
 

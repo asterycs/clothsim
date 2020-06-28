@@ -36,25 +36,26 @@ namespace clothsim
         const std::vector<UnsignedInt> triangleIndices{0, 1, 2, 1, 3, 2};
         const std::vector<Vector3> vertices{{-0.5f, -0.5f, 0.0f}, {0.5f, -0.5f, 0.0f}, {-0.5f, 0.5f, 0.0f}, {0.5f, 0.5f, 0.0f}};
 
-        initVertexMarkers(vertices);
+        initVertexMarkers();
         initMeshTriangles(vertices, triangleIndices);
     }
 
-    void Cloth::initMeshTriangles(std::vector<Vector3> verticesV, std::vector<UnsignedInt> triangleIndicesV)
+    void Cloth::initMeshTriangles(std::vector<Vector3> indexedVertices, std::vector<UnsignedInt> triangleIndices)
     {
-        m_triangleIndices = triangleIndicesV;
+        m_triangleIndices = triangleIndices;
+        m_indexedVertices = indexedVertices;
 
-        Corrade::Containers::ArrayView<UnsignedInt> triangleIndices{triangleIndicesV};
-        Corrade::Containers::ArrayView<Vector3> indexedPositions{verticesV};
+        Corrade::Containers::ArrayView<UnsignedInt> triangleIndicesView{triangleIndices};
+        Corrade::Containers::ArrayView<Vector3> indexedVerticesView{indexedVertices};
 
-        Corrade::Containers::Array<Vector3> vertices =
-            Magnum::MeshTools::duplicate<UnsignedInt, Vector3>(triangleIndices, indexedPositions);
+        Corrade::Containers::Array<Vector3> verticesExpanded =
+            Magnum::MeshTools::duplicate<UnsignedInt, Vector3>(triangleIndicesView, indexedVerticesView);
 
-        Corrade::Containers::Array<Vector3> normals = Magnum::MeshTools::generateFlatNormals(vertices);
+        Corrade::Containers::Array<Vector3> normals = Magnum::MeshTools::generateFlatNormals(verticesExpanded);
 
         std::vector<Vector3> colors(triangleIndices.size(), Vector3{1.f, 1.f, 1.f});
 
-        m_triangleBuffer.setData(Magnum::MeshTools::interleave(vertices, normals), Magnum::GL::BufferUsage::StaticDraw);
+        m_triangleBuffer.setData(Magnum::MeshTools::interleave(verticesExpanded, normals), Magnum::GL::BufferUsage::StaticDraw);
         m_colorBuffer.setData(colors, Magnum::GL::BufferUsage::StaticDraw);
 
         // Using a vertex buffer would be beneficial but that makes updating colors later much more difficult
@@ -64,34 +65,24 @@ namespace clothsim
             .setCount(static_cast<Int>(triangleIndices.size()));
     }
 
-    void Cloth::initVertexMarkers(const std::vector<Vector3> &vertices)
+    void Cloth::initVertexMarkers()
     {
-        m_vertexMarkerVertexBuffer.resize(vertices.size());
-        m_vertexMarkerIndexBuffer.resize(vertices.size());
-        m_vertexMarkerMesh.resize(vertices.size());
-
         const auto data = Magnum::Primitives::uvSphereSolid(16, 32);
 
-        for (UnsignedInt i = 0; i < vertices.size(); ++i)
-        {
-            const Vector3 center = vertices[i];
+        const auto vertices = Magnum::MeshTools::transformPoints(Matrix4::scaling({0.03f, 0.03f, 0.03f}), data.positions3DAsArray(0));
+        const auto normals = data.normalsAsArray(0);
 
-            const auto pointsTformed = Magnum::MeshTools::transformPoints(
-                Matrix4::translation(center) * Matrix4::scaling({0.03f, 0.03f, 0.03f}), data.positions3DAsArray(0));
-            const auto normalsTformed = Magnum::MeshTools::transformVectors(Matrix4::translation(center), data.normalsAsArray(0));
+        m_vertexMarkerVertexBuffer.setTargetHint(Magnum::GL::Buffer::TargetHint::Array);
+        m_vertexMarkerVertexBuffer.setData(Magnum::MeshTools::interleave(vertices, normals),
+                                           Magnum::GL::BufferUsage::StaticDraw);
 
-            m_vertexMarkerVertexBuffer[i].setTargetHint(Magnum::GL::Buffer::TargetHint::Array);
-            m_vertexMarkerVertexBuffer[i].setData(Magnum::MeshTools::interleave(pointsTformed, normalsTformed),
-                                                  Magnum::GL::BufferUsage::StaticDraw);
+        m_vertexMarkerIndexBuffer.setTargetHint(Magnum::GL::Buffer::TargetHint::ElementArray);
+        m_vertexMarkerIndexBuffer.setData(data.indicesAsArray(), Magnum::GL::BufferUsage::StaticDraw);
 
-            m_vertexMarkerIndexBuffer[i].setTargetHint(Magnum::GL::Buffer::TargetHint::ElementArray);
-            m_vertexMarkerIndexBuffer[i].setData(data.indicesAsArray(), Magnum::GL::BufferUsage::StaticDraw);
-
-            m_vertexMarkerMesh[i].setCount(data.indexCount());
-            m_vertexMarkerMesh[i].setPrimitive(data.primitive());
-            m_vertexMarkerMesh[i].addVertexBuffer(m_vertexMarkerVertexBuffer[i], 0, PhongIdShader::Position{}, PhongIdShader::Normal{});
-            m_vertexMarkerMesh[i].setIndexBuffer(m_vertexMarkerIndexBuffer[i], 0, Magnum::MeshIndexType::UnsignedInt);
-        }
+        m_vertexMarkerMesh.setCount(data.indexCount());
+        m_vertexMarkerMesh.setPrimitive(data.primitive());
+        m_vertexMarkerMesh.addVertexBuffer(m_vertexMarkerVertexBuffer, 0, PhongIdShader::Position{}, PhongIdShader::Normal{});
+        m_vertexMarkerMesh.setIndexBuffer(m_vertexMarkerIndexBuffer, 0, Magnum::MeshIndexType::UnsignedInt);
     }
 
     void Cloth::setVertexColors(const std::vector<Vector3> &colors)
@@ -112,12 +103,13 @@ namespace clothsim
 
     void Cloth::drawVertexMarkers(const Matrix4 &transformationMatrix, const Magnum::SceneGraph::Camera3D &camera)
     {
-        m_vertexShader.setTransformationMatrix(
-                          transformationMatrix * Matrix4::translation(transformationMatrix.inverted().backward() * 0.01f))
-            .setProjectionMatrix(camera.projectionMatrix());
-
-        for (UnsignedInt i = 0; i < m_vertexMarkerMesh.size(); ++i)
+        for (UnsignedInt i = 0; i < m_indexedVertices.size(); ++i)
         {
+            m_vertexShader.setTransformationMatrix(
+                              transformationMatrix * Matrix4::translation(transformationMatrix.inverted().backward() * 0.01f) *
+                              Matrix4::translation(m_indexedVertices[i]))
+                .setProjectionMatrix(camera.projectionMatrix());
+
             if (m_pinnedVertexIds.find(i) != m_pinnedVertexIds.end())
                 m_vertexShader.setColor({1.f, 0.f, 0.f});
             else
@@ -125,8 +117,7 @@ namespace clothsim
 
             m_vertexShader.setObjectId(static_cast<Int>(i));
 
-            //_vertexMarkerMesh[i].draw(_vertexShader);
-            m_vertexShader.draw(m_vertexMarkerMesh[i]);
+            m_vertexShader.draw(m_vertexMarkerMesh);
         }
     }
 
