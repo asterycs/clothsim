@@ -20,7 +20,7 @@ namespace clothsim
     {
     public:
         explicit Drawable(PhongIdShader &phongShader,
-                          VertexShader &vertexShader,
+                          VertexMarkerShader &vertexShader,
                           Object3D &parent,
                           Magnum::SceneGraph::DrawableGroup3D &drawables);
         virtual ~Drawable();
@@ -42,7 +42,7 @@ namespace clothsim
         bool m_drawVertexMarkers;
 
         PhongIdShader &m_phongShader;
-        VertexShader &m_vertexShader;
+        VertexMarkerShader &m_vertexShader;
 
         Magnum::GL::Buffer m_triangleBuffer, m_indexBuffer, m_colorBuffer;
         Magnum::GL::Mesh m_triangles;

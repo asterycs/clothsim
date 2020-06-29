@@ -42,6 +42,7 @@ namespace clothsim
         void zoomCamera(const Float offset);
         void handleViewportClick(const Vector2i position);
         void rotateCamera(const Vector2i offset);
+        void resetSimulation();
 
     private:
         void viewportEvent(ViewportEvent &event) override;
@@ -65,7 +66,7 @@ namespace clothsim
         Magnum::SceneGraph::DrawableGroup3D m_drawableGroup{};
 
         PhongIdShader m_phongShader{};
-        VertexShader m_vertexSelectionShader{};
+        VertexMarkerShader m_vertexShader{};
         CompositionShader m_compositionShader{};
 
         std::optional<Cloth> m_cloth{};

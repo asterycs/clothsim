@@ -79,6 +79,13 @@ namespace clothsim
             m_app.setVertexMarkersVisibility(m_showVertexMarkers);
         }
 
+        ImGui::SameLine();
+
+        if (ImGui::Button("Reset", ImVec2(110, 20)))
+        {
+            m_app.resetSimulation();
+        }
+
         if (ImGui::Button("Clear pinned", ImVec2(110, 20)))
         {
             m_app.clearPinnedVertices();

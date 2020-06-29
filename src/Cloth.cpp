@@ -25,13 +25,13 @@ namespace clothsim
 	}
 
 	Cloth::Cloth(PhongIdShader &phongShader,
-				 VertexShader &vertexShader,
+				 VertexMarkerShader &vertexShader,
 				 Object3D &parent,
 				 Magnum::SceneGraph::DrawableGroup3D &drawableGroup) : System(phongShader,
 																			  vertexShader,
 																			  parent,
 																			  drawableGroup),
-																	   m_size{{10, 10}}
+																	   m_size{{40, 40}}
 	{
 		reset();
 	}
@@ -50,7 +50,7 @@ namespace clothsim
 		const Float restLength1 = xStep.length();
 		const Float restLength2 = Math::sqrt(xStep.dot() + yStep.dot());
 		const Float restLength3 = 2.0f * xStep.length();
-		const Vector3 toCenter{-width * 0.5f, 0.0f, 0.0f};
+		const Vector3 offset{-width * 0.5f, 0.0f, 1.0f};
 
 		auto state = Corrade::Containers::Array<Vector3>(2 * m_size.x() * m_size.y());
 
@@ -61,13 +61,13 @@ namespace clothsim
 
 		for (UnsignedInt y = 0; y < m_size.y(); ++y)
 		{
-			state[firstByCoord(0, y)] = y * yStep + toCenter;
+			state[firstByCoord(0, y)] = y * yStep + offset;
 
 			for (UnsignedInt x = 1; x < m_size.x(); ++x)
 			{
 				const Spring s{y * m_size.x() + x - 1, y * m_size.x() + x, k, restLength1};
 				m_springs.push_back(s);
-				state[firstByCoord(x, y)] = y * yStep + x * xStep + toCenter;
+				state[firstByCoord(x, y)] = y * yStep + x * xStep + offset;
 			}
 		}
 
@@ -114,7 +114,7 @@ namespace clothsim
 					m_springs.push_back(s2);
 				}
 
-				state[firstByCoord(x, y)] = y * yStep + x * xStep + toCenter;
+				state[firstByCoord(x, y)] = y * yStep + x * xStep + offset;
 			}
 		}
 

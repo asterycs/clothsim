@@ -62,10 +62,11 @@ namespace clothsim
     private:
     };
 
-    class VertexShader : public Magnum::GL::AbstractShaderProgram
+    class VertexMarkerShader : public Magnum::GL::AbstractShaderProgram
     {
     public:
-        typedef Magnum::GL::Attribute<0, Vector3> Position;
+        typedef Magnum::GL::Attribute<0, Vector3> VertexPosition;
+        typedef Magnum::GL::Attribute<1, Vector3> Normal;
 
         enum : UnsignedInt
         {
@@ -73,37 +74,45 @@ namespace clothsim
             ObjectIdOutput = 1
         };
 
-        explicit VertexShader();
+        explicit VertexMarkerShader();
 
-        VertexShader &setColor(const Vector3 &color)
+        VertexMarkerShader &setLightPosition(const Vector3 &position)
         {
-            setUniform(m_colorUniform, color);
+            setUniform(uniformLocation("light"), position);
             return *this;
         }
 
-        VertexShader &setObjectId(Int id)
+        VertexMarkerShader &setColor(const Vector3 &color)
         {
-            setUniform(m_objectIdUniform, id);
+            setUniform(uniformLocation("vertexColor"), color);
             return *this;
         }
 
-        VertexShader &setTransformationMatrix(const Matrix4 &matrix)
+        VertexMarkerShader &setNormalMatrix(const Matrix3x3 &matrix)
         {
-            setUniform(m_transformationMatrixUniform, matrix);
+            setUniform(uniformLocation("normalMatrix"), matrix);
             return *this;
         }
 
-        VertexShader &setProjectionMatrix(const Matrix4 &matrix)
+        VertexMarkerShader &setObjectId(Int id)
         {
-            setUniform(m_projectionMatrixUniform, matrix);
+            setUniform(uniformLocation("objectId"), id);
+            return *this;
+        }
+
+        VertexMarkerShader &setTransformationMatrix(const Matrix4 &matrix)
+        {
+            setUniform(uniformLocation("transformationMatrix"), matrix);
+            return *this;
+        }
+
+        VertexMarkerShader &setProjectionMatrix(const Matrix4 &matrix)
+        {
+            setUniform(uniformLocation("projectionMatrix"), matrix);
             return *this;
         }
 
     private:
-        Int m_objectIdUniform,
-            m_transformationMatrixUniform,
-            m_projectionMatrixUniform,
-            m_colorUniform;
     };
 
     class CompositionShader : public Magnum::GL::AbstractShaderProgram

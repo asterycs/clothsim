@@ -56,7 +56,7 @@ namespace clothsim
 #endif
     }
 
-    VertexShader::VertexShader()
+    VertexMarkerShader::VertexMarkerShader()
     {
         Magnum::Utility::Resource rs("clothsim-data");
 
@@ -72,11 +72,6 @@ namespace clothsim
         CORRADE_INTERNAL_ASSERT(Magnum::GL::Shader::compile({vert, frag}));
         attachShaders({vert, frag});
         CORRADE_INTERNAL_ASSERT(link());
-
-        m_colorUniform = uniformLocation("color");
-        m_objectIdUniform = uniformLocation("objectId");
-        m_transformationMatrixUniform = uniformLocation("transformationMatrix");
-        m_projectionMatrixUniform = uniformLocation("projectionMatrix");
     }
 
     CompositionShader::CompositionShader()
@@ -84,8 +79,8 @@ namespace clothsim
         Magnum::Utility::Resource rs("clothsim-data");
 
 #ifndef MAGNUM_TARGET_GLES
-        Magnum::GL::Shader vert{Magnum::GL::Version::GL330, Magnum::GL::Shader::Type::Vertex},
-            frag{Magnum::GL::Version::GL330, Magnum::GL::Shader::Type::Fragment};
+        Magnum::GL::Shader vert{Magnum::GL::Version::GL430, Magnum::GL::Shader::Type::Vertex},
+            frag{Magnum::GL::Version::GL430, Magnum::GL::Shader::Type::Fragment};
 #else
         Magnum::GL::Shader vert{Magnum::GL::Version::GLES300, Magnum::GL::Shader::Type::Vertex},
             frag{Magnum::GL::Version::GLES300, Magnum::GL::Shader::Type::Fragment};

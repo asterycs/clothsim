@@ -27,7 +27,7 @@ namespace clothsim
 	{
 	public:
 		Cloth(PhongIdShader &phongShader,
-			  VertexShader &vertexShader,
+			  VertexMarkerShader &vertexShader,
 			  Object3D &parent,
 			  Magnum::SceneGraph::DrawableGroup3D &drawableGroup);
 		~Cloth();

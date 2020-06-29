@@ -94,7 +94,7 @@ namespace clothsim
                                                                 0.001f, 100.0f))
             .setViewport(vpSize);
 
-        m_cloth.emplace(m_phongShader, m_vertexSelectionShader, m_scene, m_drawableGroup);
+        m_cloth.emplace(m_phongShader, m_vertexShader, m_scene, m_drawableGroup);
         m_timeline.start();
     }
 
@@ -143,7 +143,9 @@ namespace clothsim
     void App::drawEvent()
     {
         const Float lastAvgStepTime = m_timeline.previousFrameDuration();
-        rk4Step(*m_cloth, 0.5f * lastAvgStepTime);
+
+        for (UnsignedInt i = 0; i < 50; ++i)
+            rk4Step(*m_cloth, 0.005f * lastAvgStepTime);
 
         if (m_ui.wantsTextInput() && !isTextInputActive())
             startTextInput();
@@ -188,6 +190,11 @@ namespace clothsim
 
         swapBuffers();
         redraw();
+    }
+
+    void App::resetSimulation()
+    {
+        m_cloth.emplace(m_phongShader, m_vertexShader, m_scene, m_drawableGroup);
     }
 
     void App::mouseScrollEvent(MouseScrollEvent &event)

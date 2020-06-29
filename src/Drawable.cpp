@@ -11,7 +11,7 @@
 namespace clothsim
 {
     Drawable::Drawable(PhongIdShader &phongShader,
-                       VertexShader &vertexShader,
+                       VertexMarkerShader &vertexShader,
                        Object3D &parent,
                        Magnum::SceneGraph::DrawableGroup3D &drawables)
         : Object3D{&parent},
@@ -60,7 +60,7 @@ namespace clothsim
     {
         const auto data = Magnum::Primitives::uvSphereSolid(16, 32);
 
-        const auto vertices = Magnum::MeshTools::transformPoints(Matrix4::scaling({0.03f, 0.03f, 0.03f}), data.positions3DAsArray(0));
+        const auto vertices = Magnum::MeshTools::transformPoints(Matrix4::scaling({0.01f, 0.01f, 0.01f}), data.positions3DAsArray(0));
         const auto normals = data.normalsAsArray(0);
 
         m_vertexMarkerVertexBuffer.setTargetHint(Magnum::GL::Buffer::TargetHint::Array);
@@ -72,7 +72,7 @@ namespace clothsim
 
         m_vertexMarkerMesh.setCount(data.indexCount());
         m_vertexMarkerMesh.setPrimitive(data.primitive());
-        m_vertexMarkerMesh.addVertexBuffer(m_vertexMarkerVertexBuffer, 0, PhongIdShader::Position{}, PhongIdShader::Normal{});
+        m_vertexMarkerMesh.addVertexBuffer(m_vertexMarkerVertexBuffer, 0, VertexMarkerShader::VertexPosition{}, VertexMarkerShader::Normal{});
         m_vertexMarkerMesh.setIndexBuffer(m_vertexMarkerIndexBuffer, 0, Magnum::MeshIndexType::UnsignedInt);
     }
 
@@ -111,7 +111,9 @@ namespace clothsim
             m_vertexShader.setTransformationMatrix(
                               viewProjection * Matrix4::translation(viewProjection.inverted().backward() * 0.01f) *
                               Matrix4::translation(m_indexedVertices[i]))
-                .setProjectionMatrix(camera.projectionMatrix());
+                .setNormalMatrix(viewProjection.rotationScaling())
+                .setProjectionMatrix(camera.projectionMatrix())
+                .setLightPosition({13.0f, 2.0f, 5.0f});
 
             const auto color = m_vertexMarkerColors[i];
             m_vertexShader.setColor(color);
