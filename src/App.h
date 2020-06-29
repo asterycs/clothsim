@@ -6,6 +6,8 @@
 
 #include <Magnum/Platform/Sdl2Application.h>
 
+#include <Magnum/Timeline.h>
+
 #include <Magnum/SceneGraph/Scene.h>
 #include <Magnum/SceneGraph/Camera.h>
 
@@ -18,6 +20,7 @@
 
 #include "Cloth.h"
 #include "UI.h"
+#include "Shaders.h"
 
 namespace clothsim
 {
@@ -74,6 +77,8 @@ namespace clothsim
         Vector2 m_cameraTrackballAngles{0.f};
 
         UI m_ui;
+
+        Timeline m_timeline{};
     };
 
 } // namespace clothsim

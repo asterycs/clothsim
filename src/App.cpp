@@ -95,6 +95,7 @@ namespace clothsim
             .setViewport(vpSize);
 
         m_cloth.emplace(m_phongShader, m_vertexSelectionShader, m_scene, m_drawableGroup);
+        m_timeline.start();
     }
 
     void App::viewportEvent(ViewportEvent &event)
@@ -141,6 +142,9 @@ namespace clothsim
 
     void App::drawEvent()
     {
+        const Float lastAvgStepTime = m_timeline.previousFrameDuration();
+        rk4Step(*m_cloth, 0.5f * lastAvgStepTime);
+
         if (m_ui.wantsTextInput() && !isTextInputActive())
             startTextInput();
         else if (!m_ui.wantsTextInput() && isTextInputActive())
@@ -179,6 +183,8 @@ namespace clothsim
         //                              {{}, _framebuffer.viewport().size()}, GL::FramebufferBlit::Color);
 
         m_ui.draw();
+
+        m_timeline.nextFrame();
 
         swapBuffers();
         redraw();

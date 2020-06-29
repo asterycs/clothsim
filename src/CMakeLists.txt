@@ -16,15 +16,22 @@ find_package(MagnumIntegration REQUIRED
 corrade_add_resource(clothsim_RESOURCES resources.conf)
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 
-file(GLOB clothsim_SRC *.cpp)
+set(clothsim_SRC
+        App.cpp
+        Cloth.cpp
+        Drawable.cpp
+        main.cpp
+        Shaders.cpp
+        System.cpp
+        UI.cpp
+        Util.cpp
+        )
 add_executable(clothsim ${clothsim_SRC} ${clothsim_RESOURCES})
 
 target_compile_definitions(clothsim PRIVATE CLOTHSIM_SOURCE_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}")
 
-target_compile_options(clothsim PRIVATE
-    $<$<CONFIG:Release>:-fsanitize=address>)
-target_link_options(clothsim PRIVATE
-    $<$<CONFIG:Release>:-fsanitize=address>)
+target_compile_options(clothsim PRIVATE $<$<CONFIG:Debug>:-fsanitize=address>)
+target_link_options(clothsim PRIVATE $<$<CONFIG:Debug>:-fsanitize=address>)
 
 set_property(TARGET clothsim
         PROPERTY CXX_STANDARD_REQUIRED 20

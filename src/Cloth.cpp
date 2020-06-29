@@ -1,182 +1,246 @@
 #include "Cloth.h"
 
-#include <Corrade/Containers/StridedArrayView.h>
+#include <Corrade/Containers/Array.h>
 
-#include <Magnum/MeshTools/GenerateFlatNormals.h>
-#include <Magnum/MeshTools/CompressIndices.h>
-#include <Magnum/MeshTools/Interleave.h>
-#include <Magnum/MeshTools/Compile.h>
-#include <Magnum/MeshTools/CombineIndexedArrays.h>
-#include <Magnum/MeshTools/Transform.h>
-#include <Magnum/MeshTools/Duplicate.h>
-
-#include <Magnum/Primitives/UVSphere.h>
-#include <Magnum/Trade/MeshData3D.h>
+#include <cassert>
 
 namespace clothsim
 {
+	static Vector3 fGravity(Float m)
+	{
+		return Vector3{0.0f, 0.0f, -9.81f * m};
+	}
 
-    Cloth::Cloth(PhongIdShader &phongShader,
-                 VertexShader &vertexShader,
-                 Object3D &parent,
-                 Magnum::SceneGraph::DrawableGroup3D &drawables)
-        : Object3D{&parent},
-          Magnum::SceneGraph::Drawable3D{*this, &drawables},
-          m_drawVertexMarkers{true},
-          m_pinnedVertexIds{},
-          m_phongShader{phongShader},
-          m_vertexShader{vertexShader},
-          m_triangleBuffer{Magnum::GL::Buffer::TargetHint::Array},
-          m_indexBuffer{Magnum::GL::Buffer::TargetHint::ElementArray},
-          m_colorBuffer{Magnum::GL::Buffer::TargetHint::Array}
-    {
-        // Expand tetrahedrons to triangles for visualization
-        //const auto triangleIndices = extractTriangleIndices(mesh.getElements());
+	static Vector3 fSpring(const Vector3 &pos1, const Vector3 &pos2, Float k, Float restLength)
+	{
+		const Vector3 d{pos2 - pos1};
+		const Vector3 f{-k * (d.length() - restLength) * d.normalized()};
 
-        const std::vector<UnsignedInt> triangleIndices{0, 1, 2, 1, 3, 2};
-        const std::vector<Vector3> vertices{{-0.5f, -0.5f, 0.0f}, {0.5f, -0.5f, 0.0f}, {-0.5f, 0.5f, 0.0f}, {0.5f, 0.5f, 0.0f}};
+		return f;
+	}
 
-        initVertexMarkers();
-        initMeshTriangles(vertices, triangleIndices);
-    }
+	static Vector3 fDrag(const Vector3 &v, Float k)
+	{
+		return Vector3{-k * v};
+	}
 
-    void Cloth::initMeshTriangles(std::vector<Vector3> indexedVertices, std::vector<UnsignedInt> triangleIndices)
-    {
-        m_triangleIndices = triangleIndices;
-        m_indexedVertices = indexedVertices;
+	Cloth::Cloth(PhongIdShader &phongShader,
+				 VertexShader &vertexShader,
+				 Object3D &parent,
+				 Magnum::SceneGraph::DrawableGroup3D &drawableGroup) : System(phongShader,
+																			  vertexShader,
+																			  parent,
+																			  drawableGroup),
+																	   m_size{{10, 10}}
+	{
+		reset();
+	}
 
-        Corrade::Containers::ArrayView<UnsignedInt> triangleIndicesView{triangleIndices};
-        Corrade::Containers::ArrayView<Vector3> indexedVerticesView{indexedVertices};
+	Cloth::~Cloth()
+	{
+	}
 
-        Corrade::Containers::Array<Vector3> verticesExpanded =
-            Magnum::MeshTools::duplicate<UnsignedInt, Vector3>(triangleIndicesView, indexedVerticesView);
+	void Cloth::reset()
+	{
+		constexpr Float k{300.0f};
+		constexpr Float width{1.5f};
+		constexpr Float height{1.5f};
+		const Vector3 yStep{0.0f, height / m_size.x(), 0.0f};
+		const Vector3 xStep{width / m_size.y(), 0.0f, 0.0f};
+		const Float restLength1 = xStep.length();
+		const Float restLength2 = Math::sqrt(xStep.dot() + yStep.dot());
+		const Float restLength3 = 2.0f * xStep.length();
+		const Vector3 toCenter{-width * 0.5f, 0.0f, 0.0f};
 
-        Corrade::Containers::Array<Vector3> normals = Magnum::MeshTools::generateFlatNormals(verticesExpanded);
+		auto state = Corrade::Containers::Array<Vector3>(2 * m_size.x() * m_size.y());
 
-        std::vector<Vector3> colors(triangleIndices.size(), Vector3{1.f, 1.f, 1.f});
+		if (m_size.x() % 2 != 0 || m_size.y() % 2 != 0)
+			Debug{} << "Check cloth dimensions!";
 
-        m_triangleBuffer.setData(Magnum::MeshTools::interleave(verticesExpanded, normals), Magnum::GL::BufferUsage::StaticDraw);
-        m_colorBuffer.setData(colors, Magnum::GL::BufferUsage::StaticDraw);
+		m_springs = std::vector<Spring>();
 
-        // Using a vertex buffer would be beneficial but that makes updating colors later much more difficult
-        m_triangles.setPrimitive(Magnum::GL::MeshPrimitive::Triangles)
-            .addVertexBuffer(m_triangleBuffer, 0, PhongIdShader::Position{}, PhongIdShader::Normal{})
-            .addVertexBuffer(m_colorBuffer, 0, PhongIdShader::VertexColor{})
-            .setCount(static_cast<Int>(triangleIndices.size()));
-    }
+		for (UnsignedInt y = 0; y < m_size.y(); ++y)
+		{
+			state[firstByCoord(0, y)] = y * yStep + toCenter;
 
-    void Cloth::initVertexMarkers()
-    {
-        const auto data = Magnum::Primitives::uvSphereSolid(16, 32);
+			for (UnsignedInt x = 1; x < m_size.x(); ++x)
+			{
+				const Spring s{y * m_size.x() + x - 1, y * m_size.x() + x, k, restLength1};
+				m_springs.push_back(s);
+				state[firstByCoord(x, y)] = y * yStep + x * xStep + toCenter;
+			}
+		}
 
-        const auto vertices = Magnum::MeshTools::transformPoints(Matrix4::scaling({0.03f, 0.03f, 0.03f}), data.positions3DAsArray(0));
-        const auto normals = data.normalsAsArray(0);
+		for (UnsignedInt x = 0; x < m_size.x(); ++x)
+		{
+			for (UnsignedInt y = 1; y < m_size.y(); ++y)
+			{
+				const Spring s{(y - 1) * m_size.x() + x, y * m_size.x() + x, k, restLength1};
+				m_springs.push_back(s);
+			}
+		}
 
-        m_vertexMarkerVertexBuffer.setTargetHint(Magnum::GL::Buffer::TargetHint::Array);
-        m_vertexMarkerVertexBuffer.setData(Magnum::MeshTools::interleave(vertices, normals),
-                                           Magnum::GL::BufferUsage::StaticDraw);
+		for (UnsignedInt y = 0; y < m_size.y() - 1; ++y)
+		{
+			for (UnsignedInt x = 0; x < m_size.x() - 1; ++x)
+			{
+				const Spring s{y * m_size.x() + x, (y + 1) * m_size.x() + (x + 1), k, restLength2};
+				m_springs.push_back(s);
+			}
+		}
 
-        m_vertexMarkerIndexBuffer.setTargetHint(Magnum::GL::Buffer::TargetHint::ElementArray);
-        m_vertexMarkerIndexBuffer.setData(data.indicesAsArray(), Magnum::GL::BufferUsage::StaticDraw);
+		for (UnsignedInt y = 1; y < m_size.y(); ++y)
+		{
+			for (UnsignedInt x = 0; x < m_size.x() - 1; ++x)
+			{
+				const Spring s{y * m_size.x() + x, (y - 1) * m_size.x() + (x + 1), k, restLength2};
+				m_springs.push_back(s);
+			}
+		}
 
-        m_vertexMarkerMesh.setCount(data.indexCount());
-        m_vertexMarkerMesh.setPrimitive(data.primitive());
-        m_vertexMarkerMesh.addVertexBuffer(m_vertexMarkerVertexBuffer, 0, PhongIdShader::Position{}, PhongIdShader::Normal{});
-        m_vertexMarkerMesh.setIndexBuffer(m_vertexMarkerIndexBuffer, 0, Magnum::MeshIndexType::UnsignedInt);
-    }
+		for (UnsignedInt y = 0; y < m_size.y(); ++y)
+		{
+			for (UnsignedInt x = 0; x < m_size.x(); ++x)
+			{
+				if (y < m_size.y() - 2)
+				{
+					const Spring s1{y * m_size.x() + x, (y + 2) * m_size.x() + x, k, restLength3};
+					m_springs.push_back(s1);
+				}
 
-    void Cloth::setVertexColors(const std::vector<Vector3> &colors)
-    {
-        std::vector<Vector3> expandedColor = expand(colors, m_triangleIndices);
-        m_colorBuffer.setData(expandedColor, Magnum::GL::BufferUsage::StaticDraw);
-    }
+				if (x < m_size.x() - 2)
+				{
+					const Spring s2{y * m_size.x() + x, y * m_size.x() + (x + 2), k, restLength3};
+					m_springs.push_back(s2);
+				}
 
-    void Cloth::draw(const Matrix4 &transformationMatrix, Magnum::SceneGraph::Camera3D &camera)
-    {
-        drawMesh(transformationMatrix, camera);
+				state[firstByCoord(x, y)] = y * yStep + x * xStep + toCenter;
+			}
+		}
 
-        if (m_drawVertexMarkers)
-        {
-            drawVertexMarkers(transformationMatrix, camera);
-        }
-    }
+		setState(std::move(state));
+		clearPinnedVertices();
 
-    void Cloth::drawVertexMarkers(const Matrix4 &transformationMatrix, const Magnum::SceneGraph::Camera3D &camera)
-    {
-        for (UnsignedInt i = 0; i < m_indexedVertices.size(); ++i)
-        {
-            m_vertexShader.setTransformationMatrix(
-                              transformationMatrix * Matrix4::translation(transformationMatrix.inverted().backward() * 0.01f) *
-                              Matrix4::translation(m_indexedVertices[i]))
-                .setProjectionMatrix(camera.projectionMatrix());
+		setPinnedVertex(0, true);
+		setPinnedVertex(m_size.x() - 1, true);
+	}
 
-            if (m_pinnedVertexIds.find(i) != m_pinnedVertexIds.end())
-                m_vertexShader.setColor({1.f, 0.f, 0.f});
-            else
-                m_vertexShader.setColor({1.f, 1.f, 1.f});
+	UnsignedInt Cloth::firstByCoord(UnsignedInt x, UnsignedInt y) const
+	{
+		assert(x < m_size.x() && y < m_size.y());
 
-            m_vertexShader.setObjectId(static_cast<Int>(i));
+		return y * 2 * m_size.x() + 2 * x;
+	}
 
-            m_vertexShader.draw(m_vertexMarkerMesh);
-        }
-    }
+	UnsignedInt Cloth::secondByCoord(UnsignedInt x, UnsignedInt y) const
+	{
+		assert(x < m_size.x() && y < m_size.y());
 
-    void Cloth::drawMesh(const Matrix4 &transformationMatrix, const Magnum::SceneGraph::Camera3D &camera)
-    {
-        Magnum::GL::Renderer::disable(Magnum::GL::Renderer::Feature::DepthTest);
-        Magnum::GL::Renderer::enable(Magnum::GL::Renderer::Feature::Blending);
-        Magnum::GL::Renderer::setBlendEquation(Magnum::GL::Renderer::BlendEquation::Add,
-                                               Magnum::GL::Renderer::BlendEquation::Add);
-        Magnum::GL::Renderer::setBlendFunction(Magnum::GL::Renderer::BlendFunction::SourceAlpha,
-                                               Magnum::GL::Renderer::BlendFunction::OneMinusSourceAlpha);
-        Magnum::GL::Renderer::disable(Magnum::GL::Renderer::Feature::FaceCulling);
+		return y * 2 * m_size.x() + 2 * x + 1;
+	}
 
-        m_phongShader.setTransformationMatrix(transformationMatrix)
-            .setNormalMatrix(transformationMatrix.rotationScaling())
-            .setProjectionMatrix(camera.projectionMatrix())
-            .setDepthScale(0.5f)
-            .setLightPosition({13.0f, 2.0f, 5.0f}); // Relative to camera
+	UnsignedInt Cloth::firstByIdx(UnsignedInt idx) const
+	{
+		assert(idx < m_size.x() * m_size.y());
 
-        m_phongShader.draw(m_triangles);
+		return 2 * idx;
+	}
 
-        Magnum::GL::Renderer::enable(Magnum::GL::Renderer::Feature::DepthTest);
-    }
+	UnsignedInt Cloth::secondByIdx(UnsignedInt idx) const
+	{
+		assert(idx < m_size.x() * m_size.y());
 
-    void Cloth::togglePinnedVertex(const UnsignedInt vertexId)
-    {
-        const auto pos = m_pinnedVertexIds.find(vertexId);
-        if (pos != m_pinnedVertexIds.end())
-            m_pinnedVertexIds.erase(pos);
-        else
-            m_pinnedVertexIds.insert(vertexId);
-    }
+		return 2 * idx + 1;
+	}
 
-    void Cloth::clearPinnedVertices()
-    {
-        m_pinnedVertexIds.clear();
-    }
+	Corrade::Containers::Array<Vector3> Cloth::evalDerivative(const Corrade::Containers::Array<Vector3> &state) const
+	{
+		const Float dragCoeff = 0.08f;
+		const auto n = m_size.x() * m_size.y();
+		constexpr Float mass = 0.025f;
+		auto f = Corrade::Containers::Array<Vector3>(2 * n);
 
-    void Cloth::drawVertexMarkers(const bool draw)
-    {
-        m_drawVertexMarkers = draw;
-    }
+		for (UnsignedInt i = 0; i < state.size(); i += 2)
+		{
+			f[i] = state[i + 1];
+		}
 
-    void Cloth::setPinnedVertex(const UnsignedInt vertexId, const bool pinned)
-    {
-        const auto pos = m_pinnedVertexIds.find(vertexId);
-        if (!pinned)
-        {
-            if (pos != m_pinnedVertexIds.end())
-                m_pinnedVertexIds.erase(pos);
-        }
-        else
-        {
-            m_pinnedVertexIds.insert(vertexId);
-        }
-    }
+		for (const auto &spring : m_springs)
+		{
+			const Vector3 fS{fSpring(state[firstByIdx(spring.leftIdx)], state[firstByIdx(spring.rightIdx)], spring.k, spring.restLength)};
+			f[secondByIdx(spring.rightIdx)] += fS;
+			f[secondByIdx(spring.leftIdx)] -= fS;
+		}
 
-    const std::set<UnsignedInt> &Cloth::getPinnedVertexIds() const
-    {
-        return m_pinnedVertexIds;
-    }
+		const Float massInv = 1.0f / mass;
+
+		for (UnsignedInt i = 0; i < f.size(); i += 2)
+		{
+			Vector3 v = f[i];
+			f[i + 1] += fDrag(v, dragCoeff) + fGravity(mass);
+			f[i + 1] *= massInv;
+		}
+
+		for (const auto pinnedIdx : getPinnedVertexIds())
+		{
+			f[firstByIdx(pinnedIdx)] = Vector3{};
+			f[secondByIdx(pinnedIdx)] = Vector3{};
+		}
+
+		return f;
+	}
+
+	void eulerStep(Cloth &cloth, const Float dt)
+	{
+		const auto &x0 = cloth.getState();
+		const auto n = x0.size();
+		const auto f0 = cloth.evalDerivative(x0);
+		Corrade::Containers::Array<Vector3> x1(n);
+
+		for (auto i = 0u; i < n; ++i)
+		{
+			x1[i] = x0[i] + dt * f0[i];
+		}
+
+		cloth.setState(std::move(x1));
+	}
+
+	void rk4Step(Cloth &cloth, const Float dt)
+	{
+		const auto &x0 = cloth.getState();
+		const UnsignedInt n = x0.size();
+		Corrade::Containers::Array<Vector3> x1(n);
+		Corrade::Containers::Array<Vector3> xT(n);
+
+		const auto k1 = cloth.evalDerivative(x0);
+
+		for (auto i = 0u; i < n; ++i)
+		{
+			xT[i] = x0[i] + (0.5f * dt) * k1[i];
+		}
+
+		const auto k2 = cloth.evalDerivative(xT);
+
+		for (auto i = 0u; i < n; ++i)
+		{
+			xT[i] = x0[i] + (0.5f * dt) * k2[i];
+		}
+
+		const auto k3 = cloth.evalDerivative(xT);
+
+		for (auto i = 0u; i < n; ++i)
+		{
+			xT[i] = x0[i] + dt * k3[i];
+		}
+
+		const auto k4 = cloth.evalDerivative(xT);
+
+		for (auto i = 0u; i < n; ++i)
+		{
+			x1[i] = x0[i] + dt / 6.0f * (k1[i] + 2.0f * k2[i] + 2.0f * k3[i] + k4[i]);
+		}
+
+		cloth.setState(std::move(x1));
+	}
+
 } // namespace clothsim
