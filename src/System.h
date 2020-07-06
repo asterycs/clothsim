@@ -5,6 +5,8 @@
 
 #include <Magnum/Magnum.h>
 
+#include <Eigen/Sparse>
+
 #include "Drawable.h"
 
 #include <vector>
@@ -25,10 +27,18 @@ namespace clothsim
 			   Magnum::SceneGraph::DrawableGroup3D &drawableGroup);
 		~System();
 
-		virtual Corrade::Containers::Array<Vector3> evalDerivative(const Corrade::Containers::Array<Vector3> &state) const = 0;
+		virtual Eigen::VectorXd evalDerivative(const Eigen::VectorXd &state) const = 0;
+		virtual Eigen::SparseMatrix<double> evalJacobian(const Eigen::VectorXd &state) const = 0;
 
-		const Corrade::Containers::Array<Vector3> &getState() const;
-		void setState(const Corrade::Containers::Array<Vector3> newState);
+		virtual void reset() = 0;
+		virtual double getParticleMass() const;
+
+		const Eigen::VectorXd &getState() const;
+		void setState(Eigen::VectorXd newState);
+
+		virtual Corrade::Containers::Array<Vector3> getParticlePositions(const Eigen::VectorXd &state) const = 0;
+
+		void setTriangleIndices(Corrade::Containers::Array<UnsignedInt> triangleIndices);
 
 		void togglePinnedVertex(const UnsignedInt vertexId);
 		void setPinnedVertex(const UnsignedInt vertexId, const bool pinned);
@@ -38,7 +48,8 @@ namespace clothsim
 	private:
 		void updateVertexMarkerColors();
 
-		Corrade::Containers::Array<Vector3> m_state{};
+		Eigen::VectorXd m_state{};
+		Corrade::Containers::Array<UnsignedInt> m_triangleIndices{};
 		std::set<UnsignedInt> m_pinnedVertexIds{};
 	};
 } // namespace clothsim

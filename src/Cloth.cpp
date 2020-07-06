@@ -2,26 +2,30 @@
 
 #include <Corrade/Containers/Array.h>
 
+#include <Magnum/EigenIntegration/Integration.h>
+
 #include <cassert>
+#include <iostream>
+#include <numeric>
 
 namespace clothsim
 {
-	static Vector3 fGravity(Float m)
+	Eigen::Vector3d Spring::force(const Eigen::Vector3d pos1, const Eigen::Vector3d pos2) const
 	{
-		return Vector3{0.0f, 0.0f, -9.81f * m};
-	}
-
-	static Vector3 fSpring(const Vector3 &pos1, const Vector3 &pos2, Float k, Float restLength)
-	{
-		const Vector3 d{pos2 - pos1};
-		const Vector3 f{-k * (d.length() - restLength) * d.normalized()};
+		const auto d{pos2 - pos1};
+		const Eigen::Vector3d f{-k * (d.norm() - restLength) * d.normalized()};
 
 		return f;
 	}
 
-	static Vector3 fDrag(const Vector3 &v, Float k)
+	static inline Eigen::Vector3d fGravity(const double m)
 	{
-		return Vector3{-k * v};
+		return Eigen::Vector3d{0.0, 0.0, -9.81 * m};
+	}
+
+	static inline Eigen::Vector3d fDrag(const Eigen::Vector3d v, double k)
+	{
+		return Eigen::Vector3d{-k * v};
 	}
 
 	Cloth::Cloth(PhongIdShader &phongShader,
@@ -31,7 +35,7 @@ namespace clothsim
 																			  vertexShader,
 																			  parent,
 																			  drawableGroup),
-																	   m_size{{40, 40}}
+																	   m_size{{4, 4}}
 	{
 		reset();
 	}
@@ -42,40 +46,39 @@ namespace clothsim
 
 	void Cloth::reset()
 	{
-		constexpr Float k{300.0f};
-		constexpr Float width{1.5f};
-		constexpr Float height{1.5f};
-		const Vector3 yStep{0.0f, height / m_size.x(), 0.0f};
-		const Vector3 xStep{width / m_size.y(), 0.0f, 0.0f};
-		const Float restLength1 = xStep.length();
-		const Float restLength2 = Math::sqrt(xStep.dot() + yStep.dot());
-		const Float restLength3 = 2.0f * xStep.length();
-		const Vector3 offset{-width * 0.5f, 0.0f, 1.0f};
+		if (m_size.x() == 0 || m_size.y() == 0)
+			throw std::runtime_error("Invalid cloth size");
 
-		auto state = Corrade::Containers::Array<Vector3>(2 * m_size.x() * m_size.y());
+		constexpr double width{1.5};
+		constexpr double height{1.5};
+		const Eigen::Vector3d yStep{0.0, -height / m_size.x(), 0.0};
+		const Eigen::Vector3d xStep{width / m_size.y(), 0.0, 0.0};
+		const double restLengthX{xStep.norm()};
+		const double restLengthY{yStep.norm()};
+		const double restLengthD{std::sqrt(xStep.squaredNorm() + yStep.squaredNorm())};
+		const double restLength2X{2.0 * xStep.norm()};
+		const double restLength2Y{2.0 * yStep.norm()};
+		const Eigen::Vector3d offset{-width * 0.5, 0.0, 1.0};
 
-		if (m_size.x() % 2 != 0 || m_size.y() % 2 != 0)
-			Debug{} << "Check cloth dimensions!";
+		Eigen::VectorXd state{2 * m_size.x() * m_size.y() * 3};
+		state.setZero();
 
-		m_springs = std::vector<Spring>();
+		m_springs.clear();
 
 		for (UnsignedInt y = 0; y < m_size.y(); ++y)
 		{
-			state[firstByCoord(0, y)] = y * yStep + offset;
-
-			for (UnsignedInt x = 1; x < m_size.x(); ++x)
+			for (UnsignedInt x = 0; x < m_size.x() - 1; ++x)
 			{
-				const Spring s{y * m_size.x() + x - 1, y * m_size.x() + x, k, restLength1};
+				const Spring s{toCoord(x, y), toCoord(x + 1, y), m_k, restLengthX};
 				m_springs.push_back(s);
-				state[firstByCoord(x, y)] = y * yStep + x * xStep + offset;
 			}
 		}
 
 		for (UnsignedInt x = 0; x < m_size.x(); ++x)
 		{
-			for (UnsignedInt y = 1; y < m_size.y(); ++y)
+			for (UnsignedInt y = 0; y < m_size.y() - 1; ++y)
 			{
-				const Spring s{(y - 1) * m_size.x() + x, y * m_size.x() + x, k, restLength1};
+				const Spring s{toCoord(x, y), toCoord(x, y + 1), m_k, restLengthY};
 				m_springs.push_back(s);
 			}
 		}
@@ -84,7 +87,7 @@ namespace clothsim
 		{
 			for (UnsignedInt x = 0; x < m_size.x() - 1; ++x)
 			{
-				const Spring s{y * m_size.x() + x, (y + 1) * m_size.x() + (x + 1), k, restLength2};
+				const Spring s{toCoord(x, y), toCoord(x + 1, y + 1), m_k, restLengthD};
 				m_springs.push_back(s);
 			}
 		}
@@ -93,7 +96,7 @@ namespace clothsim
 		{
 			for (UnsignedInt x = 0; x < m_size.x() - 1; ++x)
 			{
-				const Spring s{y * m_size.x() + x, (y - 1) * m_size.x() + (x + 1), k, restLength2};
+				const Spring s{toCoord(x, y), toCoord(x + 1, y - 1), m_k, restLengthD};
 				m_springs.push_back(s);
 			}
 		}
@@ -102,22 +105,47 @@ namespace clothsim
 		{
 			for (UnsignedInt x = 0; x < m_size.x(); ++x)
 			{
-				if (y < m_size.y() - 2)
+				if (m_size.y() > 2 && y < m_size.y() - 2)
 				{
-					const Spring s1{y * m_size.x() + x, (y + 2) * m_size.x() + x, k, restLength3};
+					const Spring s1{toCoord(x, y), toCoord(x, y + 2), m_k, restLength2Y};
 					m_springs.push_back(s1);
 				}
 
-				if (x < m_size.x() - 2)
+				if (m_size.x() > 2 && x < m_size.x() - 2)
 				{
-					const Spring s2{y * m_size.x() + x, y * m_size.x() + (x + 2), k, restLength3};
+					const Spring s2{toCoord(x, y), toCoord(x + 2, y), m_k, restLength2X};
 					m_springs.push_back(s2);
 				}
-
-				state[firstByCoord(x, y)] = y * yStep + x * xStep + offset;
 			}
 		}
 
+		for (UnsignedInt y = 0; y < m_size.y(); ++y)
+		{
+			for (UnsignedInt x = 0; x < m_size.x(); ++x)
+			{
+				xFromCoord(state, x, y) = y * yStep + x * xStep + offset;
+			}
+		}
+
+		const auto xSquares = m_size.x() - 1;
+		const auto ySquares = m_size.y() - 1;
+		auto triangleIndices = Corrade::Containers::Array<UnsignedInt>(2 * xSquares * ySquares * 3);
+
+		for (UnsignedInt triRow = 0; triRow < ySquares; ++triRow)
+		{
+			for (UnsignedInt triCol = 0; triCol < xSquares; ++triCol)
+			{
+				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3] = triRow * m_size.x() + triCol;
+				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 1] = triRow * m_size.x() + triCol + 1;
+				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 2] = triRow * m_size.x() + triCol + m_size.x();
+
+				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 3] = triRow * m_size.x() + triCol + 1;
+				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 4] = triRow * m_size.x() + triCol + 1 + m_size.x();
+				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 5] = triRow * m_size.x() + triCol + m_size.x();
+			}
+		}
+
+		setTriangleIndices(std::move(triangleIndices));
 		setState(std::move(state));
 		clearPinnedVertices();
 
@@ -125,122 +153,129 @@ namespace clothsim
 		setPinnedVertex(m_size.x() - 1, true);
 	}
 
-	UnsignedInt Cloth::firstByCoord(UnsignedInt x, UnsignedInt y) const
+	Eigen::SparseMatrix<double> Cloth::evalJacobian(const Eigen::VectorXd &state) const
 	{
-		assert(x < m_size.x() && y < m_size.y());
+		const std::size_t n{m_size.x() * m_size.y()};
 
-		return y * 2 * m_size.x() + 2 * x;
-	}
+		Eigen::SparseMatrix<double> j(n * 3 * 2, n * 3 * 2);
 
-	UnsignedInt Cloth::secondByCoord(UnsignedInt x, UnsignedInt y) const
-	{
-		assert(x < m_size.x() && y < m_size.y());
+		std::vector<Eigen::Triplet<double>> triplets;
+		triplets.reserve(n * 3 * 2 + 6 * m_size.x() * m_size.y());
 
-		return y * 2 * m_size.x() + 2 * x + 1;
-	}
+		using T = Eigen::Triplet<double>;
 
-	UnsignedInt Cloth::firstByIdx(UnsignedInt idx) const
-	{
-		assert(idx < m_size.x() * m_size.y());
-
-		return 2 * idx;
-	}
-
-	UnsignedInt Cloth::secondByIdx(UnsignedInt idx) const
-	{
-		assert(idx < m_size.x() * m_size.y());
-
-		return 2 * idx + 1;
-	}
-
-	Corrade::Containers::Array<Vector3> Cloth::evalDerivative(const Corrade::Containers::Array<Vector3> &state) const
-	{
-		const Float dragCoeff = 0.08f;
-		const auto n = m_size.x() * m_size.y();
-		constexpr Float mass = 0.025f;
-		auto f = Corrade::Containers::Array<Vector3>(2 * n);
-
-		for (UnsignedInt i = 0; i < state.size(); i += 2)
+		for (auto i = 0u; i < n; ++i)
 		{
-			f[i] = state[i + 1];
+			triplets.push_back(T(3 * i, 3 * i + n * 3, 1.0));
+			triplets.push_back(T(3 * i + 1, 3 * i + n * 3 + 1, 1.0));
+			triplets.push_back(T(3 * i + 2, 3 * i + n * 3 + 2, 1.0));
 		}
 
-		for (const auto &spring : m_springs)
+		for (auto i = 0u; i < n; ++i)
 		{
-			const Vector3 fS{fSpring(state[firstByIdx(spring.leftIdx)], state[firstByIdx(spring.rightIdx)], spring.k, spring.restLength)};
-			f[secondByIdx(spring.rightIdx)] += fS;
-			f[secondByIdx(spring.leftIdx)] -= fS;
+			triplets.push_back(T(3 * i + n * 3, 3 * i + 3 * n, m_dragCoeff));
+			triplets.push_back(T(3 * i + n * 3 + 1, 3 * i + 3 * n + 1, m_dragCoeff));
+			triplets.push_back(T(3 * i + n * 3 + 2, 3 * i + 3 * n + 2, m_dragCoeff));
 		}
 
-		const Float massInv = 1.0f / mass;
-
-		for (UnsignedInt i = 0; i < f.size(); i += 2)
+		for (const auto s : m_springs)
 		{
-			Vector3 v = f[i];
-			f[i + 1] += fDrag(v, dragCoeff) + fGravity(mass);
-			f[i + 1] *= massInv;
+			const auto li{xFromCoord(s.leftIdx)};
+			const auto ri{xFromCoord(s.rightIdx)};
+			const Eigen::Vector3d xl{state.segment(li, 3)};
+			const Eigen::Vector3d xr{state.segment(ri, 3)};
+
+			const Eigen::Vector3d dx{xl - xr};
+			const Eigen::Vector3d dxn{dx.normalized()};
+			const Eigen::Matrix3d I{Eigen::Matrix3d::Identity(3, 3)};
+			const Eigen::Matrix3d dxdxt{dxn * dxn.transpose()};
+
+			const Eigen::Matrix3d jPart{-s.k * ((1.0 - s.restLength / dx.norm()) * (I - dxdxt) + dxdxt) / getParticleMass()};
+
+			for (UnsignedInt yi = 0; yi < 3; ++yi)
+			{
+				for (UnsignedInt xi = 0; xi < 3; ++xi)
+				{
+					if (!getPinnedVertexIds().contains(li / 3))
+						triplets.push_back(T(li + yi + 3 * n, li + xi, jPart.coeffRef(yi, xi)));
+
+					if (!getPinnedVertexIds().contains(li / 3) && !getPinnedVertexIds().contains(ri / 3))
+						triplets.push_back(T(li + yi + 3 * n, ri + xi, -jPart.coeffRef(yi, xi)));
+
+					if (!getPinnedVertexIds().contains(ri / 3) && !getPinnedVertexIds().contains(li / 3))
+						triplets.push_back(T(ri + yi + 3 * n, li + xi, -jPart.coeffRef(yi, xi)));
+
+					if (!getPinnedVertexIds().contains(ri / 3))
+						triplets.push_back(T(ri + yi + 3 * n, ri + xi, jPart.coeffRef(yi, xi)));
+				}
+			}
+		}
+
+		j.setFromTriplets(triplets.begin(), triplets.end());
+
+		return j;
+	}
+
+	Eigen::VectorXd Cloth::evalDerivative(const Eigen::VectorXd &state) const
+	{
+		const auto n{m_size.x() * m_size.y()};
+		Eigen::VectorXd dxdt{Eigen::VectorXd::Zero(n * 3 * 2)};
+		const double massInv{1.0 / getParticleMass()};
+
+		for (UnsignedInt i = 0; i < n; ++i)
+		{
+			xFromCoord(dxdt, i) = dxFromCoord(state, i);
+		}
+
+		for (const auto spring : m_springs)
+		{
+			const Eigen::Vector3d fS{spring.force(xFromCoord(state, spring.leftIdx), xFromCoord(state, spring.rightIdx))};
+			dxFromCoord(dxdt, spring.rightIdx) += fS * massInv;
+			dxFromCoord(dxdt, spring.leftIdx) -= fS * massInv;
+		}
+
+		for (UnsignedInt i = 0; i < n; ++i)
+		{
+			const Eigen::Vector3d v{dxFromCoord(state, i)};
+			dxFromCoord(dxdt, i) += (fDrag(v, m_dragCoeff) + fGravity(getParticleMass())) * massInv;
 		}
 
 		for (const auto pinnedIdx : getPinnedVertexIds())
 		{
-			f[firstByIdx(pinnedIdx)] = Vector3{};
-			f[secondByIdx(pinnedIdx)] = Vector3{};
+			xFromCoord(dxdt, pinnedIdx) = Eigen::Vector3d::Zero();
+			dxFromCoord(dxdt, pinnedIdx) = Eigen::Vector3d::Zero();
 		}
 
-		return f;
+		return dxdt;
 	}
 
-	void eulerStep(Cloth &cloth, const Float dt)
+	Vector2ui Cloth::getSize() const
 	{
-		const auto &x0 = cloth.getState();
-		const auto n = x0.size();
-		const auto f0 = cloth.evalDerivative(x0);
-		Corrade::Containers::Array<Vector3> x1(n);
-
-		for (auto i = 0u; i < n; ++i)
-		{
-			x1[i] = x0[i] + dt * f0[i];
-		}
-
-		cloth.setState(std::move(x1));
+		return m_size;
 	}
 
-	void rk4Step(Cloth &cloth, const Float dt)
+	void Cloth::setSize(const Vector2ui size)
 	{
-		const auto &x0 = cloth.getState();
-		const UnsignedInt n = x0.size();
-		Corrade::Containers::Array<Vector3> x1(n);
-		Corrade::Containers::Array<Vector3> xT(n);
+		m_size = size;
 
-		const auto k1 = cloth.evalDerivative(x0);
+		reset();
+	}
 
-		for (auto i = 0u; i < n; ++i)
-		{
-			xT[i] = x0[i] + (0.5f * dt) * k1[i];
-		}
-
-		const auto k2 = cloth.evalDerivative(xT);
+	Corrade::Containers::Array<Vector3> Cloth::getParticlePositions(const Eigen::VectorXd &state) const
+	{
+		const auto n{m_size.x() * m_size.y()};
+		Corrade::Containers::Array<Vector3> vertices{n};
 
 		for (auto i = 0u; i < n; ++i)
 		{
-			xT[i] = x0[i] + (0.5f * dt) * k2[i];
+			const auto si{i * 3};
+
+			vertices[i].x() = static_cast<Float>(state(si));
+			vertices[i].y() = static_cast<Float>(state(si + 1));
+			vertices[i].z() = static_cast<Float>(state(si + 2));
 		}
 
-		const auto k3 = cloth.evalDerivative(xT);
-
-		for (auto i = 0u; i < n; ++i)
-		{
-			xT[i] = x0[i] + dt * k3[i];
-		}
-
-		const auto k4 = cloth.evalDerivative(xT);
-
-		for (auto i = 0u; i < n; ++i)
-		{
-			x1[i] = x0[i] + dt / 6.0f * (k1[i] + 2.0f * k2[i] + 2.0f * k3[i] + k4[i]);
-		}
-
-		cloth.setState(std::move(x1));
+		return vertices;
 	}
 
 } // namespace clothsim

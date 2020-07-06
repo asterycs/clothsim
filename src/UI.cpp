@@ -5,8 +5,11 @@
 
 #include <Magnum/Shaders/Flat.h>
 
+#include <cstdio>
+
 #include "App.h"
 #include "Util.h"
+#include "Integrators.h"
 
 namespace clothsim
 {
@@ -14,11 +17,63 @@ namespace clothsim
     using namespace Magnum::Math::Literals;
     using namespace Magnum;
 
+    bool UI::drawCombo(const std::string &text, const std::vector<std::string> &options, std::size_t &optionPtr)
+    {
+        const ImGuiStyle &style = ImGui::GetStyle();
+        const float width = ImGui::CalcItemWidth();
+        const float spacing = style.ItemInnerSpacing.x;
+        const float buttonSize = ImGui::GetFrameHeight();
+
+        bool changed{false};
+
+        ImGui::PushItemWidth(width - spacing * 2.0f - buttonSize * 2.0f);
+
+        if (ImGui::BeginCombo(("##" + text).c_str(), options[optionPtr].c_str(), ImGuiComboFlags_NoArrowButton))
+        {
+            for (std::size_t i = 0; i < options.size(); ++i)
+            {
+                const bool isSelected = (optionPtr == i);
+
+                if (ImGui::Selectable(options[i].c_str(), isSelected))
+                {
+                    optionPtr = i;
+                    changed = true;
+                }
+
+                if (isSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::PopItemWidth();
+
+        ImGui::SameLine(0, spacing);
+
+        if (ImGui::ArrowButton(("##l" + text).c_str(), ImGuiDir_Left))
+        {
+            optionPtr = optionPtr > 0 ? optionPtr - 1 : options.size() - 1;
+            changed = true;
+        }
+
+        ImGui::SameLine(0, spacing);
+
+        if (ImGui::ArrowButton(("##r" + text).c_str(), ImGuiDir_Right))
+        {
+            optionPtr = (optionPtr + 1) % options.size();
+            changed = true;
+        }
+
+        ImGui::SameLine(0, style.ItemInnerSpacing.x);
+        ImGui::Text("%s", text.c_str());
+
+        return changed;
+    }
+
     UI::UI(App &app, const Vector2i windowSize, const Vector2i framebufferSize, const Vector2 scaling)
         : m_imgui{NoCreate}, m_currentWindowSize{windowSize}, m_currentFramebufferSize{framebufferSize},
-          m_showVertexMarkers{true}, m_showAbout{false}, m_inPinnedVertexLassoMode{false}, m_app{app}
+          m_showVertexMarkers{true}, m_showAbout{false}, m_inPinnedVertexLassoMode{false}, m_stepLength{0.0001f}, m_currentIntegrator{0}, m_currentSystem{0}, m_app{app}
     {
-
         Utility::Resource rs("clothsim-data");
         m_licenceNotice = rs.get("LICENSE_NOTICE.txt");
 
@@ -27,6 +82,11 @@ namespace clothsim
         m_imgui = ImGuiIntegration::Context{Vector2{windowSize} / scaling, windowSize, framebufferSize};
 
         GL::Context::current().resetState(GL::Context::State::ExitExternal);
+
+        m_app.setIntegrator(forwardEulerStep);
+        m_app.setSystem<Oscillator>();
+        m_app.setStepLength(m_stepLength);
+        m_app.setStepsPerFrame(m_stepsPerFrame);
 
         draw();
     }
@@ -69,7 +129,6 @@ namespace clothsim
     {
         ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-        //ImGui::SliderFloat("Float", &_floatValue, 0.0f, 1.0f);
         ImGui::Text("%.3f ms/frame (%.1f FPS)",
                     1000.0 / Double(ImGui::GetIO().Framerate), Double(ImGui::GetIO().Framerate));
 
@@ -84,6 +143,55 @@ namespace clothsim
         if (ImGui::Button("Reset", ImVec2(110, 20)))
         {
             m_app.resetSimulation();
+        }
+
+        if (ImGui::SliderFloat("Step lenght", &m_stepLength, 0.00001f, 0.05f))
+        {
+            m_app.setStepLength(m_stepLength);
+        }
+
+        if (ImGui::SliderInt("Steps per draw", reinterpret_cast<int *>(&m_stepsPerFrame), 1, 1000))
+        {
+            m_app.setStepsPerFrame(m_stepsPerFrame);
+        }
+
+        /*if (ImGui::SliderInt("Cloth size", &m_clothSize, 3, 40))
+        {
+            const auto l = static_cast<UnsignedInt>(m_clothSize);
+            const Vector2ui size{l, l};
+            m_app.getSystem()->setSize(size);
+        }*/
+
+        if (drawCombo("Integrator", m_integrators, m_currentIntegrator))
+        {
+            switch (m_currentIntegrator)
+            {
+            case 0:
+                m_app.setIntegrator(forwardEulerStep);
+                break;
+            case 1:
+                m_app.setIntegrator(rk4Step);
+                break;
+            case 2:
+                m_app.setIntegrator(backwardEulerStep);
+                break;
+            }
+        }
+
+        if (drawCombo("System", m_systems, m_currentSystem))
+        {
+            switch (m_currentSystem)
+            {
+            case 0:
+                m_app.setSystem<Oscillator>();
+                break;
+            case 1:
+                m_app.setSystem<Planet>();
+                break;
+            case 2:
+                m_app.setSystem<Cloth>();
+                break;
+            }
         }
 
         if (ImGui::Button("Clear pinned", ImVec2(110, 20)))

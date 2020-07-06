@@ -60,7 +60,8 @@ namespace clothsim
     {
         const auto data = Magnum::Primitives::uvSphereSolid(16, 32);
 
-        const auto vertices = Magnum::MeshTools::transformPoints(Matrix4::scaling({0.01f, 0.01f, 0.01f}), data.positions3DAsArray(0));
+        constexpr float radius{0.02f};
+        const auto vertices = Magnum::MeshTools::transformPoints(Matrix4::scaling(Vector3{radius}), data.positions3DAsArray(0));
         const auto normals = data.normalsAsArray(0);
 
         m_vertexMarkerVertexBuffer.setTargetHint(Magnum::GL::Buffer::TargetHint::Array);
@@ -124,6 +125,16 @@ namespace clothsim
         }
     }
 
+    Float Drawable::getDepthScale() const
+    {
+        return m_depthScale;
+    }
+
+    void Drawable::setDepthScale(const Float scale)
+    {
+        m_depthScale = scale;
+    }
+
     void Drawable::drawMesh(const Matrix4 &viewProjection, const Magnum::SceneGraph::Camera3D &camera)
     {
         Magnum::GL::Renderer::disable(Magnum::GL::Renderer::Feature::DepthTest);
@@ -137,7 +148,7 @@ namespace clothsim
         m_phongShader.setTransformationMatrix(viewProjection)
             .setNormalMatrix(viewProjection.rotationScaling())
             .setProjectionMatrix(camera.projectionMatrix())
-            .setDepthScale(0.5f)
+            .setDepthScale(m_depthScale)
             .setLightPosition({13.0f, 2.0f, 5.0f}); // Relative to camera
 
         m_phongShader.draw(m_triangles);

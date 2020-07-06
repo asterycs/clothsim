@@ -3,6 +3,7 @@
 #include <Corrade/Containers/Array.h>
 
 #include <cassert>
+#include <iostream>
 
 namespace clothsim
 {
@@ -20,24 +21,35 @@ namespace clothsim
 	{
 	}
 
-	const Corrade::Containers::Array<Vector3> &System::getState() const
+	const Eigen::VectorXd &System::getState() const
 	{
 		return m_state;
 	}
 
-	void System::setState(Corrade::Containers::Array<Vector3> newState)
+	void System::setTriangleIndices(Corrade::Containers::Array<UnsignedInt> triangleIndices)
+	{
+		m_triangleIndices = std::move(triangleIndices);
+	}
+
+	void System::setState(Eigen::VectorXd newState)
 	{
 		m_state = std::move(newState);
 
-		Corrade::Containers::Array<Vector3> vertices(newState.size() / 2);
-		Corrade::Containers::Array<UnsignedInt> indices;
+		Corrade::Containers::Array<Vector3> vertices{getParticlePositions(m_state)};
+		Corrade::Containers::Array<UnsignedInt> indices(m_triangleIndices.size());
 
-		for (UnsignedInt i = 0; i < newState.size() / 2; ++i)
+		// TODO: memcpy instead
+		for (UnsignedInt i = 0; i < m_triangleIndices.size(); ++i)
 		{
-			vertices[i] = m_state[2 * i];
+			indices[i] = m_triangleIndices[i];
 		}
 
 		setVertexData(std::move(vertices), std::move(indices));
+	}
+
+	double System::getParticleMass() const
+	{
+		return 1.0;
 	}
 
 	void System::togglePinnedVertex(const UnsignedInt vertexId)
@@ -81,10 +93,10 @@ namespace clothsim
 
 	void System::updateVertexMarkerColors()
 	{
-		const UnsignedInt nVertices = m_state.size() / 2u;
+		const auto nVertices{getParticlePositions(getState()).size()};
 		auto colors = Corrade::Containers::Array<Color3>(Corrade::Containers::NoInit, nVertices);
 
-		for (UnsignedInt i = 0; i < nVertices; ++i)
+		for (std::size_t i = 0; i < nVertices; ++i)
 		{
 			if (m_pinnedVertexIds.find(i) == m_pinnedVertexIds.end())
 			{

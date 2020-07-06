@@ -43,6 +43,8 @@ namespace clothsim
         bool handleTextInputEvent(Platform::Application::TextInputEvent &event);
 
     private:
+        bool drawCombo(const std::string &text, const std::vector<std::string> &options, std::size_t &optionPtr);
+
         void drawOptions();
         void drawLasso();
         std::vector<Vector2> toScreenCoordinates(const std::vector<Vector2i> &pixels);
@@ -57,6 +59,16 @@ namespace clothsim
         bool m_inPinnedVertexLassoMode;
         Lasso m_currentLasso;
         Vector2i m_lassoPreviousPosition;
+
+        Int m_clothSize{6};
+        Float m_stepLength{0.0001f};
+        UnsignedInt m_stepsPerFrame{100};
+
+        std::vector<std::string> m_integrators{std::string{"Forward Euler"}, std::string{"RK4"}, std::string{"Backward Euler"}};
+        std::size_t m_currentIntegrator;
+
+        std::vector<std::string> m_systems{std::string{"First order oscillator"}, std::string{"Planet"}, std::string{"Cloth"}};
+        std::size_t m_currentSystem;
 
         std::string m_licenceNotice;
         App &m_app;

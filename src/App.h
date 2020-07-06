@@ -19,6 +19,9 @@
 #include <optional>
 
 #include "Cloth.h"
+#include "Integrators.h"
+#include "Planet.h"
+#include "Oscillator.h"
 #include "UI.h"
 #include "Shaders.h"
 
@@ -33,8 +36,6 @@ namespace clothsim
         virtual ~App(){};
 
         void setVertexMarkersVisibility(bool show);
-        void solveCurrent(bool showGradient);
-        void setCurrentGeometry(UnsignedInt geometry);
         void clearPinnedVertices();
 
         void pinVertices(const UI::Lasso &lasso);
@@ -43,6 +44,21 @@ namespace clothsim
         void handleViewportClick(const Vector2i position);
         void rotateCamera(const Vector2i offset);
         void resetSimulation();
+
+        void setStepLength(const Float stepLength);
+        void setStepsPerFrame(const UnsignedInt steps);
+
+        template <typename F>
+        void setIntegrator(F &&f)
+        {
+            m_integrator = f;
+        }
+
+        template <typename SystemT>
+        void setSystem()
+        {
+            m_system = std::make_unique<SystemT>(m_phongShader, m_vertexShader, m_scene, m_drawableGroup);
+        }
 
     private:
         void viewportEvent(ViewportEvent &event) override;
@@ -69,7 +85,7 @@ namespace clothsim
         VertexMarkerShader m_vertexShader{};
         CompositionShader m_compositionShader{};
 
-        std::optional<Cloth> m_cloth{};
+        std::unique_ptr<System> m_system{};
 
         Magnum::GL::Framebuffer m_framebuffer;
         Magnum::GL::Renderbuffer m_vertexId{}, m_depth{};
@@ -77,9 +93,12 @@ namespace clothsim
 
         Vector2 m_cameraTrackballAngles{0.f};
 
-        UI m_ui;
-
         Timeline m_timeline{};
+        Float m_stepLength{0.0f};
+        UnsignedInt m_stepsPerFrame{0};
+        std::optional<std::function<void(System &, const float)>> m_integrator;
+
+        UI m_ui;
     };
 
 } // namespace clothsim

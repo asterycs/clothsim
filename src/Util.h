@@ -41,19 +41,35 @@ namespace clothsim
 
     std::vector<Magnum::Vector2i> bresenham(const Magnum::Vector2i a, const Magnum::Vector2i b);
 
-#define TIME_FUN(function, parent) \
-    clothsim::Timer(std::string(#function) + ": line " + std::to_string(__LINE__) + ":").time(function, parent);
+#define TO_STRING_DETAIL(x) #x
+#define TO_STRING(x) TO_STRING_DETAIL(x)
 
+#define TIME_FUN(function, ...) \
+    clothsim::createTimer(#function ": line " TO_STRING(__LINE__) ":").time(function, __VA_ARGS__);
+
+    // Perfectly over-engineered timing function.
+    // Can be used for timing functions with any return type or even
+    // whole blocks of code.
+    template <std::size_t N>
     class Timer
     {
     public:
-        explicit Timer(std::string name) : m_pre{std::chrono::high_resolution_clock::now()}, m_name{std::move(name)}
+        template <std::size_t... seq>
+        Timer(const char name[N],
+              const std::index_sequence<seq...> &)
+            : m_name{name[seq]...}, m_pre{std::chrono::high_resolution_clock::now()}
         {
         }
 
-        // Should work for functions and member functions with any arguments and return types
+        // All this hassle only for avoiding a heap allocation from std::string
+        explicit constexpr Timer(const char name[N])
+            : Timer{name, std::make_index_sequence<N>()}
+        {
+        }
+
+        // Should work for functions and member functions with any arguments and return types.
         template <typename F, typename... Args>
-        decltype(auto) time(F &&f, Args &&... args)
+        inline decltype(auto) time(F &&f, Args &&... args)
         {
             return std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
         }
@@ -61,15 +77,22 @@ namespace clothsim
         ~Timer()
         {
             using namespace std::chrono;
-            const high_resolution_clock::time_point post = high_resolution_clock::now();
+            const auto post = high_resolution_clock::now();
             const auto elapsed = duration_cast<microseconds>(post - m_pre).count();
-            Magnum::Debug{} << m_name.c_str() << elapsed << "ms";
+            Magnum::Debug{} << m_name << elapsed << "ms";
         }
 
     private:
+        const char m_name[N];
         const std::chrono::high_resolution_clock::time_point m_pre;
-        const std::string m_name;
     };
+
+    template <std::size_t N>
+    constexpr Timer<N> createTimer(const char (&name)[N])
+    {
+        return Timer<N>{name};
+    }
+
 } // namespace clothsim
 
 #endif //CLOTHSIM_UTIL_H

@@ -13,6 +13,7 @@
 #include <Magnum/PixelFormat.h>
 #include <Magnum/ImageView.h>
 
+#include "Integrators.h"
 #include "Util.h"
 
 namespace clothsim
@@ -94,7 +95,6 @@ namespace clothsim
                                                                 0.001f, 100.0f))
             .setViewport(vpSize);
 
-        m_cloth.emplace(m_phongShader, m_vertexShader, m_scene, m_drawableGroup);
         m_timeline.start();
     }
 
@@ -144,8 +144,13 @@ namespace clothsim
     {
         const Float lastAvgStepTime = m_timeline.previousFrameDuration();
 
-        for (UnsignedInt i = 0; i < 50; ++i)
-            rk4Step(*m_cloth, 0.005f * lastAvgStepTime);
+        if (m_integrator.has_value())
+        {
+            for (UnsignedInt i = 0; i < m_stepsPerFrame; ++i)
+            {
+                (*m_integrator)(*m_system, m_stepLength);
+            }
+        }
 
         if (m_ui.wantsTextInput() && !isTextInputActive())
             startTextInput();
@@ -194,7 +199,8 @@ namespace clothsim
 
     void App::resetSimulation()
     {
-        m_cloth.emplace(m_phongShader, m_vertexShader, m_scene, m_drawableGroup);
+        if (m_system)
+            m_system->reset();
     }
 
     void App::mouseScrollEvent(MouseScrollEvent &event)
@@ -228,7 +234,7 @@ namespace clothsim
 
         if (selectedVertexId >= 0)
         {
-            m_cloth->togglePinnedVertex(static_cast<UnsignedInt>(selectedVertexId));
+            m_system->togglePinnedVertex(static_cast<UnsignedInt>(selectedVertexId));
             Debug{} << "Toggled vertex number " << selectedVertexId;
         }
     }
@@ -265,7 +271,7 @@ namespace clothsim
         }
 
         for (const auto index : seenIndices)
-            m_cloth->setPinnedVertex(index, true);
+            m_system->setPinnedVertex(index, true);
     }
 
     void App::mouseMoveEvent(MouseMoveEvent &event)
@@ -317,12 +323,22 @@ namespace clothsim
 
     void App::setVertexMarkersVisibility(bool show)
     {
-        m_cloth->drawVertexMarkers(show);
+        m_system->drawVertexMarkers(show);
     }
 
     void App::clearPinnedVertices()
     {
-        m_cloth->clearPinnedVertices();
+        m_system->clearPinnedVertices();
+    }
+
+    void App::setStepLength(const Float stepLength)
+    {
+        m_stepLength = stepLength;
+    }
+
+    void App::setStepsPerFrame(const UnsignedInt steps)
+    {
+        m_stepsPerFrame = steps;
     }
 
 } // namespace clothsim

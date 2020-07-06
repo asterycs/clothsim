@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17.3)
+cmake_minimum_required(VERSION 3.14)
 
 find_package(Magnum REQUIRED
         GL
@@ -20,18 +20,28 @@ set(clothsim_SRC
         App.cpp
         Cloth.cpp
         Drawable.cpp
+        Integrators.cpp
         main.cpp
+        Oscillator.cpp
+        Planet.cpp
         Shaders.cpp
         System.cpp
         UI.cpp
         Util.cpp
         )
+
 add_executable(clothsim ${clothsim_SRC} ${clothsim_RESOURCES})
+set_target_properties(clothsim
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
 
 target_compile_definitions(clothsim PRIVATE CLOTHSIM_SOURCE_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}")
 
-target_compile_options(clothsim PRIVATE $<$<CONFIG:Debug>:-fsanitize=address>)
-target_link_options(clothsim PRIVATE $<$<CONFIG:Debug>:-fsanitize=address>)
+if (NOT CORRADE_TARGET_EMSCRIPTEN)
+        target_compile_options(clothsim PRIVATE $<$<CONFIG:Debug>:-fsanitize=address>)
+        target_link_options(clothsim PRIVATE $<$<CONFIG:Debug>:-fsanitize=address>)
+endif()
 
 set_property(TARGET clothsim
         PROPERTY CXX_STANDARD_REQUIRED 20
@@ -78,7 +88,11 @@ target_compile_options(clothsim PRIVATE
     -Wunused-variable
     -Wsign-conversion
     -Wno-error=sign-conversion
-    -Wno-error=missing-declarations)
+    -Wno-error=missing-declarations
+    -Wno-error=unused-variable
+    -Wno-error=unused-function
+    -Wno-error=unknown-pragmas
+    -Wno-error=unused-parameter)
 
 if (NOT CORRADE_TARGET_EMSCRIPTEN)
     target_compile_options(clothsim PRIVATE
