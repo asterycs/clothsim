@@ -21,7 +21,7 @@ namespace clothsim
 	{
 	}
 
-	const Eigen::VectorXd &System::getState() const
+	const System::Vector &System::getState() const
 	{
 		return m_state;
 	}
@@ -31,11 +31,11 @@ namespace clothsim
 		m_triangleIndices = std::move(triangleIndices);
 	}
 
-	void System::setState(Eigen::VectorXd newState)
+	void System::setState(Vector newState)
 	{
 		m_state = std::move(newState);
 
-		Corrade::Containers::Array<Vector3> vertices{getParticlePositions(m_state)};
+		Corrade::Containers::Array<Magnum::Vector3> vertices{getParticlePositions(m_state)};
 		Corrade::Containers::Array<UnsignedInt> indices(m_triangleIndices.size());
 
 		// TODO: memcpy instead
@@ -47,58 +47,58 @@ namespace clothsim
 		setVertexData(std::move(vertices), std::move(indices));
 	}
 
-	double System::getParticleMass() const
+	System::ScalarT System::getParticleMass() const
 	{
 		return 1.0;
 	}
 
-	void System::togglePinnedVertex(const UnsignedInt vertexId)
+	void System::togglePinnedParticle(const UnsignedInt particleId)
 	{
-		const auto pos = m_pinnedVertexIds.find(vertexId);
-		if (pos != m_pinnedVertexIds.end())
-			m_pinnedVertexIds.erase(pos);
+		const auto pos = m_pinnedParticleIds.find(particleId);
+		if (pos != m_pinnedParticleIds.end())
+			m_pinnedParticleIds.erase(pos);
 		else
-			m_pinnedVertexIds.insert(vertexId);
+			m_pinnedParticleIds.insert(particleId);
 
-		updateVertexMarkerColors();
+		updateParticleMarkerColors();
 	}
 
-	void System::clearPinnedVertices()
+	void System::clearPinnedParticles()
 	{
-		m_pinnedVertexIds.clear();
+		m_pinnedParticleIds.clear();
 
-		updateVertexMarkerColors();
+		updateParticleMarkerColors();
 	}
 
-	void System::setPinnedVertex(const UnsignedInt vertexId, const bool pinned)
+	void System::setPinnedParticle(const UnsignedInt particleId, const bool pinned)
 	{
-		const auto pos = m_pinnedVertexIds.find(vertexId);
+		const auto pos = m_pinnedParticleIds.find(particleId);
 		if (!pinned)
 		{
-			if (pos != m_pinnedVertexIds.end())
-				m_pinnedVertexIds.erase(pos);
+			if (pos != m_pinnedParticleIds.end())
+				m_pinnedParticleIds.erase(pos);
 		}
 		else
 		{
-			m_pinnedVertexIds.insert(vertexId);
+			m_pinnedParticleIds.insert(particleId);
 		}
 
-		updateVertexMarkerColors();
+		updateParticleMarkerColors();
 	}
 
-	const std::set<UnsignedInt> &System::getPinnedVertexIds() const
+	const std::set<UnsignedInt> &System::getPinnedParticleIds() const
 	{
-		return m_pinnedVertexIds;
+		return m_pinnedParticleIds;
 	}
 
-	void System::updateVertexMarkerColors()
+	void System::updateParticleMarkerColors()
 	{
 		const auto nVertices{getParticlePositions(getState()).size()};
-		auto colors = Corrade::Containers::Array<Color3>(Corrade::Containers::NoInit, nVertices);
+		auto colors{Corrade::Containers::Array<Color3>(Corrade::Containers::NoInit, nVertices)};
 
 		for (std::size_t i = 0; i < nVertices; ++i)
 		{
-			if (m_pinnedVertexIds.find(i) == m_pinnedVertexIds.end())
+			if (m_pinnedParticleIds.find(i) == m_pinnedParticleIds.end())
 			{
 				colors[i] = Color3{1.0f, 1.0f, 1.0f};
 			}

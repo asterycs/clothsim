@@ -26,39 +26,39 @@ namespace clothsim
 
     void Oscillator::reset()
     {
-        Eigen::VectorXd state(3);
+        Vector state(3);
         state(0) = 0.0;
         state(1) = 0.0;
         state(2) = m_radius;
 
         setState(std::move(state));
-        clearPinnedVertices();
+        clearPinnedParticles();
     }
 
-    Eigen::SparseMatrix<double> Oscillator::evalJacobian(const Eigen::VectorXd & /*state*/) const
+    System::SparseMatrix Oscillator::evalJacobian(const Vector & /*state*/) const
     {
-        Eigen::SparseMatrix<double> j(3, 3);
+        SparseMatrix j{3, 3};
 
-        j.coeffRef(0, 2) = -1.0f;
-        j.coeffRef(1, 1) = 1.0f;
-        j.coeffRef(2, 0) = 1.0f;
+        j.insert(0, 2) = -1.0;
+        j.insert(1, 1) = 1.0;
+        j.insert(2, 0) = 1.0;
 
         return j;
     }
 
-    Eigen::VectorXd Oscillator::evalDerivative(const Eigen::VectorXd &state) const
+    System::Vector Oscillator::evalDerivative(const Vector &state) const
     {
-        Eigen::VectorXd d{3};
+        Vector d{3};
         d(0) = -state(2);
-        d(1) = 0.0f;
+        d(1) = 0.0;
         d(2) = state(0);
 
         return d;
     }
 
-    Corrade::Containers::Array<Vector3> Oscillator::getParticlePositions(const Eigen::VectorXd &state) const
+    Corrade::Containers::Array<Magnum::Vector3> Oscillator::getParticlePositions(const Vector &state) const
     {
-        Corrade::Containers::Array<Vector3> vertices{1};
+        Corrade::Containers::Array<Magnum::Vector3> vertices{1};
 
         vertices[0].x() = static_cast<Float>(state(0));
         vertices[0].y() = static_cast<Float>(state(1));

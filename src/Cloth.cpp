@@ -10,22 +10,22 @@
 
 namespace clothsim
 {
-	Eigen::Vector3d Spring::force(const Eigen::Vector3d pos1, const Eigen::Vector3d pos2) const
+	System::Vector3 Spring::force(const System::Vector3 pos1, const System::Vector3 pos2) const
 	{
 		const auto d{pos2 - pos1};
-		const Eigen::Vector3d f{-k * (d.norm() - restLength) * d.normalized()};
+		const System::Vector3 f{-k * (d.norm() - restLength) * d.normalized()};
 
 		return f;
 	}
 
-	static inline Eigen::Vector3d fGravity(const double m)
+	static inline System::Vector3 fGravity(const System::ScalarT m)
 	{
-		return Eigen::Vector3d{0.0, 0.0, -9.81 * m};
+		return System::Vector3{0.0f, 0.0f, -9.81f * m};
 	}
 
-	static inline Eigen::Vector3d fDrag(const Eigen::Vector3d v, double k)
+	static inline System::Vector3 fDrag(const System::Vector3 v, System::ScalarT k)
 	{
-		return Eigen::Vector3d{-k * v};
+		return System::Vector3{-k * v};
 	}
 
 	Cloth::Cloth(PhongIdShader &phongShader,
@@ -35,7 +35,7 @@ namespace clothsim
 																			  vertexShader,
 																			  parent,
 																			  drawableGroup),
-																	   m_size{{4, 4}}
+																	   m_size{{2, 2}}
 	{
 		reset();
 	}
@@ -49,18 +49,18 @@ namespace clothsim
 		if (m_size.x() == 0 || m_size.y() == 0)
 			throw std::runtime_error("Invalid cloth size");
 
-		constexpr double width{1.5};
-		constexpr double height{1.5};
-		const Eigen::Vector3d yStep{0.0, -height / m_size.x(), 0.0};
-		const Eigen::Vector3d xStep{width / m_size.y(), 0.0, 0.0};
-		const double restLengthX{xStep.norm()};
-		const double restLengthY{yStep.norm()};
-		const double restLengthD{std::sqrt(xStep.squaredNorm() + yStep.squaredNorm())};
-		const double restLength2X{2.0 * xStep.norm()};
-		const double restLength2Y{2.0 * yStep.norm()};
-		const Eigen::Vector3d offset{-width * 0.5, 0.0, 1.0};
+		constexpr ScalarT width{1.5f};
+		constexpr ScalarT height{1.5f};
+		const Vector3 yStep{0.0, -height / m_size.x(), 0.0};
+		const Vector3 xStep{width / m_size.y(), 0.0, 0.0};
+		const ScalarT restLengthX{xStep.norm()};
+		const ScalarT restLengthY{yStep.norm()};
+		const ScalarT restLengthD{std::sqrt(xStep.squaredNorm() + yStep.squaredNorm())};
+		const ScalarT restLength2X{2.0f * xStep.norm()};
+		const ScalarT restLength2Y{2.0f * yStep.norm()};
+		const Vector3 offset{-width * 0.5f, 0.0f, 1.0f};
 
-		Eigen::VectorXd state{2 * m_size.x() * m_size.y() * 3};
+		Vector state{2 * m_size.x() * m_size.y() * 3};
 		state.setZero();
 
 		m_springs.clear();
@@ -127,9 +127,9 @@ namespace clothsim
 			}
 		}
 
-		const auto xSquares = m_size.x() - 1;
-		const auto ySquares = m_size.y() - 1;
-		auto triangleIndices = Corrade::Containers::Array<UnsignedInt>(2 * xSquares * ySquares * 3);
+		const auto xSquares{m_size.x() - 1};
+		const auto ySquares{m_size.y() - 1};
+		auto triangleIndices{Corrade::Containers::Array<UnsignedInt>(2 * xSquares * ySquares * 3)};
 
 		for (UnsignedInt triRow = 0; triRow < ySquares; ++triRow)
 		{
@@ -147,22 +147,21 @@ namespace clothsim
 
 		setTriangleIndices(std::move(triangleIndices));
 		setState(std::move(state));
-		clearPinnedVertices();
+		clearPinnedParticles();
 
-		setPinnedVertex(0, true);
-		setPinnedVertex(m_size.x() - 1, true);
+		setPinnedParticle(0, true);
+		setPinnedParticle(m_size.x() - 1, true);
 	}
 
-	Eigen::SparseMatrix<double> Cloth::evalJacobian(const Eigen::VectorXd &state) const
+	System::SparseMatrix Cloth::evalJacobian(const Vector &state) const
 	{
-		const std::size_t n{m_size.x() * m_size.y()};
+		const auto n{m_size.x() * m_size.y()};
 
-		Eigen::SparseMatrix<double> j(n * 3 * 2, n * 3 * 2);
+		SparseMatrixRM j{n * 3 * 2, n * 3 * 2};
 
-		std::vector<Eigen::Triplet<double>> triplets;
+		using T = Eigen::Triplet<ScalarT>;
+		std::vector<T> triplets;
 		triplets.reserve(n * 3 * 2 + 6 * m_size.x() * m_size.y());
-
-		using T = Eigen::Triplet<double>;
 
 		for (auto i = 0u; i < n; ++i)
 		{
@@ -182,45 +181,44 @@ namespace clothsim
 		{
 			const auto li{xFromCoord(s.leftIdx)};
 			const auto ri{xFromCoord(s.rightIdx)};
-			const Eigen::Vector3d xl{state.segment(li, 3)};
-			const Eigen::Vector3d xr{state.segment(ri, 3)};
+			const Vector3 xl{state.segment(li, 3)};
+			const Vector3 xr{state.segment(ri, 3)};
 
-			const Eigen::Vector3d dx{xl - xr};
-			const Eigen::Vector3d dxn{dx.normalized()};
-			const Eigen::Matrix3d I{Eigen::Matrix3d::Identity(3, 3)};
-			const Eigen::Matrix3d dxdxt{dxn * dxn.transpose()};
+			const Vector3 dx{xl - xr};
+			const Vector3 dxn{dx.normalized()};
+			const auto I{Matrix3::Identity(3, 3)};
+			const auto dxdxt{dxn * dxn.transpose()};
 
-			const Eigen::Matrix3d jPart{-s.k * ((1.0 - s.restLength / dx.norm()) * (I - dxdxt) + dxdxt) / getParticleMass()};
+			const Matrix3 jPart{-s.k * ((1.0f - s.restLength / dx.norm()) * (I - dxdxt) + dxdxt) / getParticleMass()};
 
 			for (UnsignedInt yi = 0; yi < 3; ++yi)
 			{
 				for (UnsignedInt xi = 0; xi < 3; ++xi)
 				{
-					if (!getPinnedVertexIds().contains(li / 3))
-						triplets.push_back(T(li + yi + 3 * n, li + xi, jPart.coeffRef(yi, xi)));
-
-					if (!getPinnedVertexIds().contains(li / 3) && !getPinnedVertexIds().contains(ri / 3))
-						triplets.push_back(T(li + yi + 3 * n, ri + xi, -jPart.coeffRef(yi, xi)));
-
-					if (!getPinnedVertexIds().contains(ri / 3) && !getPinnedVertexIds().contains(li / 3))
-						triplets.push_back(T(ri + yi + 3 * n, li + xi, -jPart.coeffRef(yi, xi)));
-
-					if (!getPinnedVertexIds().contains(ri / 3))
-						triplets.push_back(T(ri + yi + 3 * n, ri + xi, jPart.coeffRef(yi, xi)));
+					triplets.push_back(T(li + yi + 3 * n, li + xi, jPart(yi, xi)));
+					triplets.push_back(T(li + yi + 3 * n, ri + xi, -jPart(yi, xi)));
+					triplets.push_back(T(ri + yi + 3 * n, li + xi, -jPart(yi, xi)));
+					triplets.push_back(T(ri + yi + 3 * n, ri + xi, jPart(yi, xi)));
 				}
 			}
 		}
 
 		j.setFromTriplets(triplets.begin(), triplets.end());
 
+		const auto &pinnedParticles{getPinnedParticleIds()};
+		for (const auto pinnedParticle : pinnedParticles)
+		{
+			j.row(pinnedParticle * 3 + n * 3) = SparseVector{n * 3 * 2};
+		}
+
 		return j;
 	}
 
-	Eigen::VectorXd Cloth::evalDerivative(const Eigen::VectorXd &state) const
+	System::Vector Cloth::evalDerivative(const Vector &state) const
 	{
 		const auto n{m_size.x() * m_size.y()};
-		Eigen::VectorXd dxdt{Eigen::VectorXd::Zero(n * 3 * 2)};
-		const double massInv{1.0 / getParticleMass()};
+		Vector dxdt{Vector::Zero(n * 3 * 2)};
+		const ScalarT massInv{1.0f / getParticleMass()};
 
 		for (UnsignedInt i = 0; i < n; ++i)
 		{
@@ -229,21 +227,22 @@ namespace clothsim
 
 		for (const auto spring : m_springs)
 		{
-			const Eigen::Vector3d fS{spring.force(xFromCoord(state, spring.leftIdx), xFromCoord(state, spring.rightIdx))};
+			const Vector3 fS{spring.force(xFromCoord(state, spring.leftIdx), xFromCoord(state, spring.rightIdx))};
 			dxFromCoord(dxdt, spring.rightIdx) += fS * massInv;
 			dxFromCoord(dxdt, spring.leftIdx) -= fS * massInv;
 		}
 
 		for (UnsignedInt i = 0; i < n; ++i)
 		{
-			const Eigen::Vector3d v{dxFromCoord(state, i)};
+			const Vector3 v{dxFromCoord(state, i)};
 			dxFromCoord(dxdt, i) += (fDrag(v, m_dragCoeff) + fGravity(getParticleMass())) * massInv;
 		}
 
-		for (const auto pinnedIdx : getPinnedVertexIds())
+		const auto &pinnedParticles{getPinnedParticleIds()};
+		for (const auto pinnedIdx : pinnedParticles)
 		{
-			xFromCoord(dxdt, pinnedIdx) = Eigen::Vector3d::Zero();
-			dxFromCoord(dxdt, pinnedIdx) = Eigen::Vector3d::Zero();
+			xFromCoord(dxdt, pinnedIdx) = Vector3::Zero();
+			dxFromCoord(dxdt, pinnedIdx) = Vector3::Zero();
 		}
 
 		return dxdt;
@@ -261,21 +260,21 @@ namespace clothsim
 		reset();
 	}
 
-	Corrade::Containers::Array<Vector3> Cloth::getParticlePositions(const Eigen::VectorXd &state) const
+	Corrade::Containers::Array<Magnum::Vector3> Cloth::getParticlePositions(const Vector &state) const
 	{
 		const auto n{m_size.x() * m_size.y()};
-		Corrade::Containers::Array<Vector3> vertices{n};
+		Corrade::Containers::Array<Magnum::Vector3> positions{n};
 
 		for (auto i = 0u; i < n; ++i)
 		{
 			const auto si{i * 3};
 
-			vertices[i].x() = static_cast<Float>(state(si));
-			vertices[i].y() = static_cast<Float>(state(si + 1));
-			vertices[i].z() = static_cast<Float>(state(si + 2));
+			positions[i].x() = static_cast<Float>(state(si));
+			positions[i].y() = static_cast<Float>(state(si + 1));
+			positions[i].z() = static_cast<Float>(state(si + 2));
 		}
 
-		return vertices;
+		return positions;
 	}
 
 } // namespace clothsim

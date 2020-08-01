@@ -36,8 +36,6 @@ namespace clothsim
         virtual ~App(){};
 
         void setVertexMarkersVisibility(bool show);
-        void clearPinnedVertices();
-
         void pinVertices(const UI::Lasso &lasso);
 
         void zoomCamera(const Float offset);
@@ -47,11 +45,12 @@ namespace clothsim
 
         void setStepLength(const Float stepLength);
         void setStepsPerFrame(const UnsignedInt steps);
+        const std::unique_ptr<System> &getSystem();
 
         template <typename F>
         void setIntegrator(F &&f)
         {
-            m_integrator = f;
+            m_integrator = std::forward<F &&>(f);
         }
 
         template <typename SystemT>
@@ -93,10 +92,9 @@ namespace clothsim
 
         Vector2 m_cameraTrackballAngles{0.f};
 
-        Timeline m_timeline{};
         Float m_stepLength{0.0f};
         UnsignedInt m_stepsPerFrame{0};
-        std::optional<std::function<void(System &, const float)>> m_integrator;
+        std::optional<std::function<void(System &, const float)>> m_integrator{};
 
         UI m_ui;
     };

@@ -94,8 +94,6 @@ namespace clothsim
                                                                 aspectRatio,
                                                                 0.001f, 100.0f))
             .setViewport(vpSize);
-
-        m_timeline.start();
     }
 
     void App::viewportEvent(ViewportEvent &event)
@@ -142,8 +140,6 @@ namespace clothsim
 
     void App::drawEvent()
     {
-        const Float lastAvgStepTime = m_timeline.previousFrameDuration();
-
         if (m_integrator.has_value())
         {
             for (UnsignedInt i = 0; i < m_stepsPerFrame; ++i)
@@ -191,8 +187,6 @@ namespace clothsim
 
         m_ui.draw();
 
-        m_timeline.nextFrame();
-
         swapBuffers();
         redraw();
     }
@@ -234,7 +228,7 @@ namespace clothsim
 
         if (selectedVertexId >= 0)
         {
-            m_system->togglePinnedVertex(static_cast<UnsignedInt>(selectedVertexId));
+            m_system->togglePinnedParticle(static_cast<UnsignedInt>(selectedVertexId));
             Debug{} << "Toggled vertex number " << selectedVertexId;
         }
     }
@@ -271,7 +265,7 @@ namespace clothsim
         }
 
         for (const auto index : seenIndices)
-            m_system->setPinnedVertex(index, true);
+            m_system->setPinnedParticle(index, true);
     }
 
     void App::mouseMoveEvent(MouseMoveEvent &event)
@@ -326,9 +320,9 @@ namespace clothsim
         m_system->drawVertexMarkers(show);
     }
 
-    void App::clearPinnedVertices()
+    const std::unique_ptr<System> &App::getSystem()
     {
-        m_system->clearPinnedVertices();
+        return m_system;
     }
 
     void App::setStepLength(const Float stepLength)

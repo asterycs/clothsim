@@ -27,60 +27,62 @@ namespace clothsim
 
     void Planet::reset()
     {
-        Eigen::VectorXd state{6};
+        Vector state{6};
         state.setZero();
 
         state(2) = m_radius;
         state(3) = -1.0f / Math::sqrt(m_radius);
 
         setState(std::move(state));
-        clearPinnedVertices();
+        clearPinnedParticles();
     }
 
-    Eigen::SparseMatrix<double> Planet::evalJacobian(const Eigen::VectorXd &state) const
+    System::SparseMatrix Planet::evalJacobian(const Vector &state) const
     {
-        Eigen::SparseMatrix<double> j(6, 6);
-        const Eigen::Vector3d X{state.head<3>()};
-        const Eigen::Vector3d Xn{X.normalized()};
+        SparseMatrix j{6, 6};
+        const Vector3 X{state.head<3>()};
+        const Vector3 Xn{X.normalized()};
         const auto r2{X.squaredNorm()};
         const auto m{getParticleMass()};
 
-        const Eigen::Matrix3d cross{Xn * Xn.transpose()};
-        const Eigen::Matrix3d I{Eigen::Matrix3d::Identity()};
+        const auto cross{Xn * Xn.transpose()};
+        const auto I{Matrix3::Identity()};
 
-        const Eigen::Matrix3d jPart{2 * m / (r2 * r2) * cross - I * m / r2};
+        const Matrix3 jPart{2 * m / (r2 * r2) * cross - I * m / r2};
 
-        j.coeffRef(0, 3) = 1.0f;
-        j.coeffRef(1, 4) = 1.0f;
-        j.coeffRef(2, 5) = 1.0f;
+        j.reserve(12);
 
-        j.coeffRef(3, 0) = jPart(0, 0);
-        j.coeffRef(4, 0) = jPart(1, 0);
-        j.coeffRef(5, 0) = jPart(2, 0);
+        j.insert(0, 3) = 1.0f;
+        j.insert(1, 4) = 1.0f;
+        j.insert(2, 5) = 1.0f;
 
-        j.coeffRef(3, 1) = jPart(0, 1);
-        j.coeffRef(4, 1) = jPart(1, 1);
-        j.coeffRef(5, 1) = jPart(2, 1);
+        j.insert(3, 0) = jPart(0, 0);
+        j.insert(4, 0) = jPart(1, 0);
+        j.insert(5, 0) = jPart(2, 0);
 
-        j.coeffRef(3, 2) = jPart(0, 2);
-        j.coeffRef(4, 2) = jPart(1, 2);
-        j.coeffRef(5, 2) = jPart(2, 2);
+        j.insert(3, 1) = jPart(0, 1);
+        j.insert(4, 1) = jPart(1, 1);
+        j.insert(5, 1) = jPart(2, 1);
+
+        j.insert(3, 2) = jPart(0, 2);
+        j.insert(4, 2) = jPart(1, 2);
+        j.insert(5, 2) = jPart(2, 2);
 
         return j;
     }
 
-    Eigen::VectorXd Planet::evalDerivative(const Eigen::VectorXd &state) const
+    System::Vector Planet::evalDerivative(const Vector &state) const
     {
-        Eigen::VectorXd d(6);
+        Vector d{Vector::Zero(6)};
         d.segment(0, 3) = state.segment(3, 3);
 
-        const auto pos = state.head(3);
-        const double r = pos.norm();
+        const Vector3 pos{state.head<3>()};
+        const double r2{pos.squaredNorm()};
 
-        if (r > 0)
-            d.segment(3, 3) = -state.segment(0, 3) / (r * r);
+        if (r2 > 0)
+            d.segment(3, 3) = -state.segment(0, 3) / r2;
 
-        for (const auto pinnedIdx : getPinnedVertexIds())
+        for (const auto pinnedIdx : getPinnedParticleIds())
         {
             d(pinnedIdx * 3) = 0.0f;
             d(pinnedIdx * 3 + 1) = 0.0f;
@@ -94,9 +96,9 @@ namespace clothsim
         return d;
     }
 
-    Corrade::Containers::Array<Vector3> Planet::getParticlePositions(const Eigen::VectorXd &state) const
+    Corrade::Containers::Array<Magnum::Vector3> Planet::getParticlePositions(const Vector &state) const
     {
-        Corrade::Containers::Array<Vector3> vertices{1};
+        Corrade::Containers::Array<Magnum::Vector3> vertices{1};
 
         vertices[0].x() = static_cast<Float>(state(0));
         vertices[0].y() = static_cast<Float>(state(1));

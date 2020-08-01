@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.13)
 
 find_package(Magnum REQUIRED
         GL
@@ -49,10 +49,10 @@ set_property(TARGET clothsim
         PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
 target_compile_features(clothsim PRIVATE cxx_std_20)
 
-target_include_directories(clothsim SYSTEM PRIVATE ${MAGNUM_INCLUDE_DIR})
-target_include_directories(clothsim SYSTEM PRIVATE ${MAGNUMEXTRAS_INCLUDE_DIR})
-target_include_directories(clothsim SYSTEM PRIVATE ${CORRADE_INCLUDE_DIR})
-target_include_directories(clothsim SYSTEM PRIVATE ${EIGEN_INCLUDE_DIR})
+#target_include_directories(clothsim SYSTEM PRIVATE ${MAGNUM_INCLUDE_DIR})
+#arget_include_directories(clothsim SYSTEM PRIVATE ${MAGNUMEXTRAS_INCLUDE_DIR})
+#target_include_directories(clothsim SYSTEM PRIVATE ${CORRADE_INCLUDE_DIR})
+#target_include_directories(clothsim SYSTEM PRIVATE ${EIGEN_INCLUDE_DIR})
 
 target_compile_options(clothsim PRIVATE
     -Wall
@@ -64,7 +64,6 @@ target_compile_options(clothsim PRIVATE
     -Wpedantic
     #-Woverloaded-virtual
     -Wnull-dereference
-    -Wdouble-promotion
     #-Weffc++
     -Wno-error=conversion
     -fasynchronous-unwind-tables
@@ -87,6 +86,7 @@ target_compile_options(clothsim PRIVATE
     -Wunused-value
     -Wunused-variable
     -Wsign-conversion
+    -Wno-error=double-promotion
     -Wno-error=sign-conversion
     -Wno-error=missing-declarations
     -Wno-error=unused-variable
@@ -110,12 +110,12 @@ endif()
 if (CORRADE_TARGET_EMSCRIPTEN)
     target_compile_options(clothsim PRIVATE
         "SHELL:-s ALLOW_MEMORY_GROWTH=1"
-        "SHELL:-s BINARYEN_TRAP_MODE=clamp"
+        #"SHELL:-s BINARYEN_TRAP_MODE=clamp"
         "SHELL:-s DEMANGLE_SUPPORT=1"
         "SHELL:-s ASSERTIONS=1")
     target_link_options(clothsim PRIVATE
         "SHELL:-s ALLOW_MEMORY_GROWTH=1"
-        "SHELL:-s BINARYEN_TRAP_MODE=clamp"
+        #"SHELL:-s BINARYEN_TRAP_MODE=clamp"
         "SHELL:-s DEMANGLE_SUPPORT=1"
         "SHELL:-s ASSERTIONS=1")
 endif ()

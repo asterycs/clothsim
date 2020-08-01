@@ -19,11 +19,11 @@ namespace clothsim
 
 	struct Spring
 	{
-		Eigen::Vector3d force(const Eigen::Vector3d pos1, const Eigen::Vector3d pos2) const;
+		System::Vector3 force(const System::Vector3 pos1, const System::Vector3 pos2) const;
 		UnsignedInt leftIdx;
 		UnsignedInt rightIdx;
-		double k;
-		double restLength;
+		System::ScalarT k;
+		System::ScalarT restLength;
 	};
 
 	class Cloth : public System
@@ -35,10 +35,10 @@ namespace clothsim
 			  Magnum::SceneGraph::DrawableGroup3D &drawableGroup);
 		~Cloth() override;
 
-		Corrade::Containers::Array<Vector3> getParticlePositions(const Eigen::VectorXd &state) const override;
+		Corrade::Containers::Array<Magnum::Vector3> getParticlePositions(const Vector &state) const override;
 
-		Eigen::VectorXd evalDerivative(const Eigen::VectorXd &state) const override;
-		Eigen::SparseMatrix<double> evalJacobian(const Eigen::VectorXd &state) const override;
+		Vector evalDerivative(const Vector &state) const override;
+		SparseMatrix evalJacobian(const Vector &state) const override;
 
 		void reset() override;
 		void setSize(const Vector2ui size);
@@ -165,8 +165,8 @@ namespace clothsim
 			return y * m_size.x() + x;
 		}
 
-		const double m_k{300.0f};
-		const double m_dragCoeff{0.08f};
+		const ScalarT m_k{300.0f};
+		const ScalarT m_dragCoeff{0.08f};
 
 		Vector2ui m_size;
 		std::vector<Spring> m_springs;

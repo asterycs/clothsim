@@ -196,7 +196,10 @@ namespace clothsim
 
         if (ImGui::Button("Clear pinned", ImVec2(110, 20)))
         {
-            m_app.clearPinnedVertices();
+            const auto &system{m_app.getSystem()};
+
+            if (system)
+                system->clearPinnedParticles();
         }
 
         ImGui::SameLine();

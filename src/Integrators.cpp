@@ -1,6 +1,5 @@
 #include "Integrators.h"
 
-#include <ranges>
 #include <numeric>
 #include <unordered_set>
 #include <iostream>
@@ -9,31 +8,29 @@ namespace clothsim
 {
     void backwardEulerStep(System &system, const Float dt)
     {
-        Eigen::VectorXd xInitial{system.getState()};
+        const System::Vector xInitial{system.getState()};
 
-        // Initial guess
-        Eigen::VectorXd x{xInitial + dt * system.evalDerivative(xInitial)};
+        // Initial guess using forward Euler
+        System::Vector x{xInitial + dt * system.evalDerivative(xInitial)};
 
-        Eigen::VectorXd dx{xInitial.size()};
+        System::Vector dx{xInitial.size()};
         dx.setOnes();
 
         // Newton's method
-        for (int i = 0; i < 10 && dx.norm() > 1e-12; ++i)
+        for (int i = 0; i < 10 && dx.norm() > 1e-12f; ++i)
         {
-            const Eigen::SparseMatrix<double> dfdx{system.evalJacobian(x)};
-            const Eigen::VectorXd dxdt{system.evalDerivative(x)};
+            const System::SparseMatrix dfdx{system.evalJacobian(x)};
+            const System::Vector dxdt{system.evalDerivative(x)};
 
-            Eigen::SparseMatrix<double> J{dfdx.rows(), dfdx.cols()};
+            System::SparseMatrix J{dfdx.rows(), dfdx.cols()};
             {
                 J.setIdentity();
                 J = J - dt * dfdx;
             }
 
-            const Eigen::VectorXd b{-(x - xInitial - dt * dxdt)};
+            const System::Vector b{-(x - xInitial - dt * dxdt)};
 
-            Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
-            //Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
-            //Eigen::ConjugateGradient<Eigen::SparseMatrix<double>> solver;
+            Eigen::SparseLU<System::SparseMatrix> solver;
             solver.compute(J);
 
             if (solver.info() != Eigen::Success)
@@ -58,29 +55,29 @@ namespace clothsim
     {
         const auto &x0 = system.getState();
         const auto dxdt = system.evalDerivative(x0);
-        Eigen::VectorXd x1 = x0 + dt * dxdt;
+        System::Vector x1 = x0 + dt * dxdt;
 
         system.setState(std::move(x1));
     }
 
     void rk4Step(System &system, const Float dt)
     {
-        const auto &x0 = system.getState();
-        const auto k1 = system.evalDerivative(x0);
+        const auto &x0{system.getState()};
+        const auto k1{system.evalDerivative(x0)};
 
-        Eigen::VectorXd xT{x0 + (0.5f * dt) * k1};
+        System::Vector xT{x0 + (0.5f * dt) * k1};
 
-        const auto k2 = system.evalDerivative(xT);
+        const auto k2{system.evalDerivative(xT)};
 
         xT = x0 + (0.5f * dt) * k2;
 
-        const auto k3 = system.evalDerivative(xT);
+        const auto k3{system.evalDerivative(xT)};
 
         xT = x0 + dt * k3;
 
-        const auto k4 = system.evalDerivative(xT);
+        const auto k4{system.evalDerivative(xT)};
 
-        const Eigen::VectorXd x1{x0 + dt / 6.0f * (k1 + 2.0f * k2 + 2.0f * k3 + k4)};
+        const System::Vector x1{x0 + dt / 6.0f * (k1 + 2.0f * k2 + 2.0f * k3 + k4)};
 
         system.setState(std::move(x1));
     }

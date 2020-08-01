@@ -26,15 +26,15 @@ namespace clothsim
                    Magnum::SceneGraph::DrawableGroup3D &drawableGroup);
         ~Oscillator() override;
 
-        Corrade::Containers::Array<Vector3> getParticlePositions(const Eigen::VectorXd &state) const override;
+        Corrade::Containers::Array<Magnum::Vector3> getParticlePositions(const Vector &state) const override;
 
-        Eigen::VectorXd evalDerivative(const Eigen::VectorXd &state) const override;
-        Eigen::SparseMatrix<double> evalJacobian(const Eigen::VectorXd &state) const override;
+        Vector evalDerivative(const Vector &state) const override;
+        SparseMatrix evalJacobian(const Vector &state) const override;
 
         void reset() override;
 
     private:
-        double m_radius{1.0};
+        ScalarT m_radius{1.0};
     };
 } // namespace clothsim
 
