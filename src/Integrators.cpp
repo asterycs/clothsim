@@ -6,6 +6,51 @@
 
 namespace clothsim
 {
+    void backwardMidpointStep(System &system, const Float dt)
+    {
+        const System::Vector xInitial{system.getState()};
+
+        // Initial guess using forward Euler
+        System::Vector x{xInitial + dt * system.evalDerivative(xInitial)};
+
+        System::Vector dx{xInitial.size()};
+        dx.setOnes();
+
+        // Newton's method
+        for (int i = 0; i < 10 && dx.norm() > 1e-12f; ++i)
+        {
+            const System::SparseMatrix dfdx{system.evalJacobian(0.5f * (x + xInitial))};
+            const System::Vector dxdt{system.evalDerivative(0.5f * (x + xInitial))};
+
+            System::SparseMatrix J{dfdx.rows(), dfdx.cols()};
+            {
+                J.setIdentity();
+                J = J - dt * dfdx * 0.5f * J;
+            }
+
+            const System::Vector b{-(x - xInitial - dt * dxdt)};
+
+            Eigen::SparseLU<System::SparseMatrix> solver;
+            solver.compute(J);
+
+            if (solver.info() != Eigen::Success)
+            {
+                throw std::runtime_error("Solver failed");
+            }
+
+            dx = solver.solve(b);
+
+            if (solver.info() != Eigen::Success)
+            {
+                throw std::runtime_error("Solver failed");
+            }
+
+            x += dx;
+        }
+
+        system.setState(std::move(x));
+    }
+
     void backwardEulerStep(System &system, const Float dt)
     {
         const System::Vector xInitial{system.getState()};

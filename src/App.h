@@ -4,10 +4,10 @@
 #include <Corrade/Containers/Reference.h>
 #include <Corrade/Interconnect/Receiver.h>
 
-#if defined(CORRADE_TARGET_EMSCRIPTEN)
-#include <Magnum/Platform/EmscriptenApplication.h>
-#else
+#ifndef CORRADE_TARGET_EMSCRIPTEN
 #include <Magnum/Platform/Sdl2Application.h>
+#else
+#include <Magnum/Platform/EmscriptenApplication.h>
 #endif
 
 #include <Magnum/Timeline.h>
@@ -33,7 +33,7 @@ namespace clothsim
 {
     using Scene3D = Magnum::SceneGraph::Scene<Magnum::SceneGraph::MatrixTransformation3D>;
 
-    class App : public Magnum::Platform::Application
+    class App : public Platform::Application
     {
     public:
         explicit App(const Arguments &arguments);

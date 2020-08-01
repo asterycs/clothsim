@@ -334,5 +334,6 @@ namespace clothsim
     {
         m_stepsPerFrame = steps;
     }
-
 } // namespace clothsim
+
+MAGNUM_APPLICATION_MAIN(clothsim::App)

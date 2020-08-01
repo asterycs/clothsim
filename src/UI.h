@@ -6,10 +6,12 @@
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/Magnum.h>
 
+#include <vector>
+
 namespace clothsim
 {
-    using namespace Magnum;
     class App;
+    using namespace Magnum;
 
     class UI
     {
@@ -63,7 +65,7 @@ namespace clothsim
         Float m_stepLength{0.0001f};
         UnsignedInt m_stepsPerFrame{100};
 
-        std::vector<std::string> m_integrators{std::string{"Forward Euler"}, std::string{"RK4"}, std::string{"Backward Euler"}};
+        std::vector<std::string> m_integrators{std::string{"Forward Euler"}, std::string{"RK4"}, std::string{"Backward Euler"}, std::string{"Implicit midpoint"}};
         std::size_t m_currentIntegrator;
 
         std::vector<std::string> m_systems{std::string{"First order oscillator"}, std::string{"Planet"}, std::string{"Cloth"}};
