@@ -155,12 +155,28 @@ namespace clothsim
             m_app.setStepsPerFrame(m_stepsPerFrame);
         }
 
-        /*if (ImGui::SliderInt("Cloth size", &m_clothSize, 3, 40))
+        if (m_currentSystem == 2)
         {
-            const auto l = static_cast<UnsignedInt>(m_clothSize);
-            const Vector2ui size{l, l};
-            m_app.getSystem()->setSize(size);
-        }*/
+            auto &cloth{dynamic_cast<Cloth &>(*m_app.getSystem())};
+
+            static Vector2i clothSize{cloth.getSize()};
+            bool updated{false};
+
+            if (ImGui::SliderInt("Cloth size x", &clothSize.x(), 1, 40))
+            {
+                updated = true;
+            }
+
+            if (ImGui::SliderInt("Cloth size y", &clothSize.y(), 1, 40))
+            {
+                updated = true;
+            }
+
+            if (updated)
+            {
+                cloth.setSize(Vector2ui{clothSize});
+            }
+        }
 
         if (drawCombo("Integrator", m_integrators, m_currentIntegrator))
         {
@@ -222,7 +238,7 @@ namespace clothsim
         }
 
         ImGui::End();
-    }
+    } // namespace clothsim
 
     void UI::drawLasso()
     {

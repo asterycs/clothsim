@@ -49,7 +49,7 @@ namespace clothsim
 
 	System::ScalarT System::getParticleMass() const
 	{
-		return 1.0;
+		return 0.025f;
 	}
 
 	void System::togglePinnedParticle(const UnsignedInt particleId)

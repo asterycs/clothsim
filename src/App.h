@@ -4,7 +4,11 @@
 #include <Corrade/Containers/Reference.h>
 #include <Corrade/Interconnect/Receiver.h>
 
+#if defined(CORRADE_TARGET_EMSCRIPTEN)
+#include <Magnum/Platform/EmscriptenApplication.h>
+#else
 #include <Magnum/Platform/Sdl2Application.h>
+#endif
 
 #include <Magnum/Timeline.h>
 

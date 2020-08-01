@@ -43,12 +43,11 @@ namespace clothsim
         const Vector3 X{state.head<3>()};
         const Vector3 Xn{X.normalized()};
         const auto r2{X.squaredNorm()};
-        const auto m{getParticleMass()};
 
         const auto cross{Xn * Xn.transpose()};
         const auto I{Matrix3::Identity()};
 
-        const Matrix3 jPart{2 * m / (r2 * r2) * cross - I * m / r2};
+        const Matrix3 jPart{2.0f / (r2 * r2) * cross - I / r2};
 
         j.reserve(12);
 

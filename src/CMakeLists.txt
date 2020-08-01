@@ -1,13 +1,21 @@
 cmake_minimum_required(VERSION 3.13)
 
+find_package(Corrade REQUIRED Main)
+
 find_package(Magnum REQUIRED
         GL
         MeshTools
         Shaders
         SceneGraph
         Trade
-        Sdl2Application
         Primitives)
+
+if(CORRADE_TARGET_EMSCRIPTEN)
+        find_package(Magnum REQUIRED EmscriptenApplication)
+else()
+        find_package(Magnum REQUIRED Sdl2Application)
+endif()
+
 
 find_package(MagnumIntegration REQUIRED
         ImGui
@@ -21,7 +29,6 @@ set(clothsim_SRC
         Cloth.cpp
         Drawable.cpp
         Integrators.cpp
-        main.cpp
         Oscillator.cpp
         Planet.cpp
         Shaders.cpp
@@ -30,12 +37,11 @@ set(clothsim_SRC
         Util.cpp
         )
 
-add_executable(clothsim ${clothsim_SRC} ${clothsim_RESOURCES})
-set_target_properties(clothsim
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
+if (NOT CORRADE_TARGET_EMSCRIPTEN)
+        set(clothsim_SRC ${clothsim_SRC} main.cpp)
+endif()
 
+add_executable(clothsim ${clothsim_SRC} ${clothsim_RESOURCES})
 target_compile_definitions(clothsim PRIVATE CLOTHSIM_SOURCE_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}")
 
 if (NOT CORRADE_TARGET_EMSCRIPTEN)
@@ -49,57 +55,45 @@ set_property(TARGET clothsim
         PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
 target_compile_features(clothsim PRIVATE cxx_std_20)
 
-#target_include_directories(clothsim SYSTEM PRIVATE ${MAGNUM_INCLUDE_DIR})
-#arget_include_directories(clothsim SYSTEM PRIVATE ${MAGNUMEXTRAS_INCLUDE_DIR})
-#target_include_directories(clothsim SYSTEM PRIVATE ${CORRADE_INCLUDE_DIR})
-#target_include_directories(clothsim SYSTEM PRIVATE ${EIGEN_INCLUDE_DIR})
-
-target_compile_options(clothsim PRIVATE
-    -Wall
-    -Wextra
-    -Werror
-    -Wconversion
-    -Wshadow
-    #-Wnon-virtual-dtor
-    -Wpedantic
-    #-Woverloaded-virtual
-    -Wnull-dereference
-    #-Weffc++
-    -Wno-error=conversion
-    -fasynchronous-unwind-tables
-    -fstack-protector-all
-    -Werror=format-security
-    -Wdisabled-optimization
-    -Wformat=2
-    -Wcast-align
-    -Wformat-security
-    -Wmissing-braces
-    -Wparentheses
-    -Wpointer-arith
-    -Wredundant-decls
-    -Wreturn-type
-    -Wsign-compare
-    -Wuninitialized
-    -Wunreachable-code
-    -Wunused
-    -Wunused-label
-    -Wunused-value
-    -Wunused-variable
-    -Wsign-conversion
-    -Wno-error=double-promotion
-    -Wno-error=sign-conversion
-    -Wno-error=missing-declarations
-    -Wno-error=unused-variable
-    -Wno-error=unused-function
-    -Wno-error=unknown-pragmas
-    -Wno-error=unused-parameter)
-
 if (NOT CORRADE_TARGET_EMSCRIPTEN)
-    target_compile_options(clothsim PRIVATE
-            -Wuseless-cast
-            -Wduplicated-cond
-            -Wduplicated-branches
-            -Wlogical-op)
+        target_compile_options(clothsim PRIVATE
+        -Wall
+        -Wextra
+        -Werror
+        -Wconversion
+        -Wshadow
+        #-Wnon-virtual-dtor
+        -Wpedantic
+        #-Woverloaded-virtual
+        -Wnull-dereference
+        #-Weffc++
+        -Wno-error=conversion
+        -fasynchronous-unwind-tables
+        -Werror=format-security
+        -Wdisabled-optimization
+        -Wformat=2
+        -Wcast-align
+        -Wformat-security
+        -Wmissing-braces
+        -Wparentheses
+        -Wpointer-arith
+        -Wredundant-decls
+        -Wreturn-type
+        -Wsign-compare
+        -Wuninitialized
+        -Wunreachable-code
+        -Wunused
+        -Wunused-label
+        -Wunused-value
+        -Wunused-variable
+        -Wsign-conversion
+        -Wno-error=double-promotion
+        -Wno-error=sign-conversion
+        -Wno-error=missing-declarations
+        -Wno-error=unused-variable
+        -Wno-error=unused-function
+        -Wno-error=unknown-pragmas
+        -Wno-error=unused-parameter)
 endif()
 
 find_package(OpenMP)
@@ -109,18 +103,21 @@ endif()
 
 if (CORRADE_TARGET_EMSCRIPTEN)
     target_compile_options(clothsim PRIVATE
-        "SHELL:-s ALLOW_MEMORY_GROWTH=1"
+        #"SHELL:-s ALLOW_MEMORY_GROWTH=1"
         #"SHELL:-s BINARYEN_TRAP_MODE=clamp"
         "SHELL:-s DEMANGLE_SUPPORT=1"
-        "SHELL:-s ASSERTIONS=1")
+        "SHELL:-s ASSERTIONS=1"
+    )
     target_link_options(clothsim PRIVATE
-        "SHELL:-s ALLOW_MEMORY_GROWTH=1"
+        #"SHELL:-s ALLOW_MEMORY_GROWTH=1"
         #"SHELL:-s BINARYEN_TRAP_MODE=clamp"
         "SHELL:-s DEMANGLE_SUPPORT=1"
-        "SHELL:-s ASSERTIONS=1")
+        "SHELL:-s ASSERTIONS=1"
+    )
 endif ()
 
 target_link_libraries(clothsim PRIVATE
+        Corrade::Main
         Magnum::Application
         Magnum::GL
         Magnum::Magnum

@@ -51,8 +51,8 @@ namespace clothsim
 
 		constexpr ScalarT width{1.5f};
 		constexpr ScalarT height{1.5f};
-		const Vector3 yStep{0.0, -height / m_size.x(), 0.0};
-		const Vector3 xStep{width / m_size.y(), 0.0, 0.0};
+		const Vector3 yStep{0.0, -height / m_size.y(), 0.0};
+		const Vector3 xStep{width / m_size.x(), 0.0, 0.0};
 		const ScalarT restLengthX{xStep.norm()};
 		const ScalarT restLengthY{yStep.norm()};
 		const ScalarT restLengthD{std::sqrt(xStep.squaredNorm() + yStep.squaredNorm())};
@@ -157,7 +157,7 @@ namespace clothsim
 	{
 		const auto n{m_size.x() * m_size.y()};
 
-		SparseMatrixRM j{n * 3 * 2, n * 3 * 2};
+		SparseMatrixRM j(n * 3 * 2, n * 3 * 2);
 
 		using T = Eigen::Triplet<ScalarT>;
 		std::vector<T> triplets;
@@ -208,7 +208,7 @@ namespace clothsim
 		const auto &pinnedParticles{getPinnedParticleIds()};
 		for (const auto pinnedParticle : pinnedParticles)
 		{
-			j.row(pinnedParticle * 3 + n * 3) = SparseVector{n * 3 * 2};
+			j.row(pinnedParticle * 3 + n * 3) = SparseVector(n * 3 * 2);
 		}
 
 		return j;

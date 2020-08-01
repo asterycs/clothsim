@@ -60,7 +60,6 @@ namespace clothsim
         Lasso m_currentLasso;
         Vector2i m_lassoPreviousPosition;
 
-        Int m_clothSize{6};
         Float m_stepLength{0.0001f};
         UnsignedInt m_stepsPerFrame{100};
 
