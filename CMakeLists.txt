@@ -30,6 +30,7 @@ corrade_add_resource(clothsim_RESOURCES src/resources.conf)
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 
 set(clothsim_SRC
+        src/UI.cpp
         src/App.cpp
         src/Cloth.cpp
         src/Drawable.cpp
@@ -38,7 +39,6 @@ set(clothsim_SRC
         src/Planet.cpp
         src/Shaders.cpp
         src/System.cpp
-        src/UI.cpp
         src/Util.cpp
         )
 
@@ -135,9 +135,9 @@ target_link_libraries(clothsim PRIVATE
 if (CORRADE_TARGET_EMSCRIPTEN)
     install(TARGETS clothsim DESTINATION ${MAGNUM_DEPLOY_PREFIX})
     install(FILES
-            index.html
-            EmscriptenApplication.js
-            style.css
+            src/index.html
+            src/EmscriptenApplication.js
+            src/style.css
             DESTINATION ${MAGNUM_DEPLOY_PREFIX})
     install(FILES
             ${CMAKE_CURRENT_BINARY_DIR}/clothsim.js.mem

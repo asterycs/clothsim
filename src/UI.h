@@ -3,8 +3,12 @@
 
 #include <imgui.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
+
+#ifndef CORRADE_TARGET_EMSCRIPTEN
 #include <Magnum/Platform/Sdl2Application.h>
-#include <Magnum/Magnum.h>
+#else
+#include <Magnum/Platform/EmscriptenApplication.h>
+#endif
 
 #include <vector>
 #include <functional>

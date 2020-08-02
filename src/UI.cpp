@@ -1,5 +1,11 @@
 #include "UI.h"
 
+#ifdef CORRADE_TARGET_EMSCRIPTEN
+#include <Magnum/Platform/EmscriptenApplication.h>
+#else
+#include <Magnum/Platform/Sdl2Application.h>
+#endif
+
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/Context.h>
 

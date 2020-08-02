@@ -4,13 +4,11 @@
 #include <Corrade/Containers/Reference.h>
 #include <Corrade/Interconnect/Receiver.h>
 
-#ifndef CORRADE_TARGET_EMSCRIPTEN
-#include <Magnum/Platform/Sdl2Application.h>
-#else
+#ifdef CORRADE_TARGET_EMSCRIPTEN
 #include <Magnum/Platform/EmscriptenApplication.h>
+#else
+#include <Magnum/Platform/Sdl2Application.h>
 #endif
-
-#include <Magnum/Timeline.h>
 
 #include <Magnum/SceneGraph/Scene.h>
 #include <Magnum/SceneGraph/Camera.h>
