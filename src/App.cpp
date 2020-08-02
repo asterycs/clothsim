@@ -49,7 +49,7 @@ namespace clothsim
             .setMagnificationFilter(GL::SamplerFilter::Nearest)
             .setMinificationFilter(GL::SamplerFilter::Nearest);
 
-        m_vertexId.setStorage(GL::RenderbufferFormat::R32I, vpSize);
+        m_particleId.setStorage(GL::RenderbufferFormat::R32I, vpSize);
         m_depth.setStorage(GL::RenderbufferFormat::DepthComponent24, vpSize);
 
         // Used for Weight blended order-independent transparency: http://jcgt.org/published/0002/02/09/
@@ -67,7 +67,7 @@ namespace clothsim
             .setImage(0, GL::TextureFormat::R8, ImageView2D{PixelFormat::R8Unorm, vpSize});
 
         m_framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{m_phongShader.ColorOutput}, m_color, 0)
-            .attachRenderbuffer(GL::Framebuffer::ColorAttachment{m_phongShader.ObjectIdOutput}, m_vertexId)
+            .attachRenderbuffer(GL::Framebuffer::ColorAttachment{m_phongShader.ObjectIdOutput}, m_particleId)
             .attachTexture(GL::Framebuffer::ColorAttachment{m_phongShader.TransparencyAccumulationOutput},
                            m_transparencyAccumulation, 0)
             .attachTexture(GL::Framebuffer::ColorAttachment{m_phongShader.TransparencyRevealageOutput},
@@ -192,7 +192,7 @@ namespace clothsim
 
     void App::resizeRenderbuffers(const Vector2i &size)
     {
-        m_vertexId.setStorage(GL::RenderbufferFormat::R32I, size);
+        m_particleId.setStorage(GL::RenderbufferFormat::R32I, size);
         m_depth.setStorage(GL::RenderbufferFormat::DepthComponent24, size);
     }
 

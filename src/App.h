@@ -81,7 +81,7 @@ namespace clothsim
         std::unique_ptr<System> m_system{};
 
         Magnum::GL::Framebuffer m_framebuffer;
-        Magnum::GL::Renderbuffer m_vertexId{}, m_depth{};
+        Magnum::GL::Renderbuffer m_particleId{}, m_depth{};
         Magnum::GL::Texture2D m_color{}, m_transparencyAccumulation{}, m_transparencyRevealage{};
 
         Vector2 m_cameraTrackballAngles{0.f};

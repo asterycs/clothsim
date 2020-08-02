@@ -24,7 +24,7 @@ h1 {
     opacity: .4;
 }
 
-#listener {
+#container {
     width: 100%;
     height: 100%;
     margin-left: auto;
@@ -32,7 +32,7 @@ h1 {
     position: absolute;
 }
 
-#module {
+#canvas {
     position:absolute;
     width:100%;
     height:100%;
@@ -51,7 +51,7 @@ h1 {
     width: 50%;
 }
 
-#statusDescription {
+#status-description {
     position: relative;
     text-align: center;
     margin: auto;

@@ -133,14 +133,21 @@ target_link_libraries(clothsim PRIVATE
         MagnumIntegration::Eigen)
 
 if (CORRADE_TARGET_EMSCRIPTEN)
-    install(TARGETS clothsim DESTINATION ${MAGNUM_DEPLOY_PREFIX})
-    install(FILES
-            src/index.html
-            src/EmscriptenApplication.js
-            src/style.css
+        add_custom_command(TARGET clothsim POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${MAGNUM_EMSCRIPTENAPPLICATION_JS}
+        ${PROJECT_SOURCE_DIR}/src/style.css
+        ${PROJECT_SOURCE_DIR}/src/index.html
+        $<TARGET_FILE_DIR:clothsim>)
+
+        install(TARGETS clothsim DESTINATION ${MAGNUM_DEPLOY_PREFIX})
+        install(FILES
+            ${PROJECT_SOURCE_DIR}/src/index.html
+            ${MAGNUM_EMSCRIPTENAPPLICATION_JS}
+            ${PROJECT_SOURCE_DIR}/src/style.css
             DESTINATION ${MAGNUM_DEPLOY_PREFIX})
-    install(FILES
-            ${CMAKE_CURRENT_BINARY_DIR}/clothsim.js.mem
-            ${CMAKE_CURRENT_BINARY_DIR}/clothsim.wasm
+        install(FILES
+            $<TARGET_FILE_DIR:clothsim>/clothsim.js.mem
+            $<TARGET_FILE_DIR:clothsim>/clothsim.wasm
             DESTINATION ${MAGNUM_DEPLOY_PREFIX} OPTIONAL)
 endif ()
