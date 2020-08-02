@@ -51,17 +51,9 @@ namespace clothsim
         void setStepsPerFrame(const UnsignedInt steps);
         const std::unique_ptr<System> &getSystem();
 
-        template <typename F>
-        void setIntegrator(F &&f)
-        {
-            m_integrator = std::forward<F &&>(f);
-        }
+        void setIntegrator(std::function<void(System &system, const Float dt)> integrator);
 
-        template <typename SystemT>
-        void setSystem()
-        {
-            m_system = std::make_unique<SystemT>(m_phongShader, m_vertexShader, m_scene, m_drawableGroup);
-        }
+        void setSystem(const std::size_t i);
 
     private:
         void viewportEvent(ViewportEvent &event) override;

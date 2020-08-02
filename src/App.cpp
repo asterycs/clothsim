@@ -27,7 +27,7 @@ namespace clothsim
                                                .setTitle("clothsim")
                                                .setWindowFlags(Configuration::WindowFlag::Resizable)},
           m_framebuffer{GL::defaultFramebuffer.viewport()},
-          m_ui{*this, windowSize(), framebufferSize(), dpiScaling()}
+          m_ui{windowSize(), framebufferSize(), dpiScaling()}
     {
 #ifndef MAGNUM_TARGET_GLES
         MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GL430);
@@ -94,6 +94,70 @@ namespace clothsim
                                                                 aspectRatio,
                                                                 0.001f, 100.0f))
             .setViewport(vpSize);
+
+        // Syntax error or what?
+        //m_ui.setIntegratorCallback(std::bind(&App::setIntegrator, this, std::placeholders::_1, std::placeholders::_2));
+        m_ui.setIntegratorCallback([this](std::function<void(System & system, const Float dt)> f) {
+            this->setIntegrator(f);
+        });
+        m_ui.setSystemCallback([this](const std::size_t i) {
+            this->setSystem(i);
+        });
+        m_ui.setStepLengthCallback([this](const float dt) {
+            this->setStepLength(dt);
+        });
+        m_ui.setStepsPerFrameCallback([this](const UnsignedInt steps) {
+            this->setStepsPerFrame(steps);
+        });
+        m_ui.setVertexMarkerVisibilityCallback([this](const bool show) {
+            this->setVertexMarkersVisibility(show);
+        });
+        m_ui.setResetCallback([this]() {
+            this->resetSimulation();
+        });
+        m_ui.setViewportClickCallback([this](const Vector2i position) {
+            this->handleViewportClick(position);
+        });
+        m_ui.setLassoCallback([this](const UI::Lasso &lasso) {
+            this->pinVertices(lasso);
+        });
+        m_ui.setRotateCameraCallback([this](const Vector2i relativePosition) {
+            this->rotateCamera(relativePosition);
+        });
+        m_ui.setZoomCameraCallback([this](const Float zoom) {
+            this->zoomCamera(zoom);
+        });
+    }
+
+    void App::setIntegrator(std::function<void(System &system, const Float dt)> integrator)
+    {
+        m_integrator = integrator;
+    }
+
+    void App::setSystem(const std::size_t i)
+    {
+        m_ui.setSizeCallback([](const Vector2ui) {});
+
+        switch (i)
+        {
+        case 0:
+            m_system = std::make_unique<Oscillator>(m_phongShader, m_vertexShader, m_scene, m_drawableGroup);
+            break;
+        case 1:
+            m_system = std::make_unique<Planet>(m_phongShader, m_vertexShader, m_scene, m_drawableGroup);
+            break;
+        case 2:
+            m_system = std::make_unique<Cloth>(m_phongShader, m_vertexShader, m_scene, m_drawableGroup);
+            m_ui.setSizeCallback([this](const Vector2ui size) {
+                auto &cloth{dynamic_cast<Cloth &>(*m_system)}; // TODO: Fix this
+                cloth.setSize(size);
+            });
+            break;
+        }
+
+        m_ui.setClearPinnedCallback([this]() {
+            m_system->clearPinnedParticles();
+        });
     }
 
     void App::viewportEvent(ViewportEvent &event)

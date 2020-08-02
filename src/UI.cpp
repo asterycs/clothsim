@@ -7,9 +7,11 @@
 
 #include <cstdio>
 
-#include "App.h"
 #include "Util.h"
 #include "Integrators.h"
+#include "Oscillator.h"
+#include "Planet.h"
+#include "Cloth.h"
 
 namespace clothsim
 {
@@ -70,9 +72,9 @@ namespace clothsim
         return changed;
     }
 
-    UI::UI(App &app, const Vector2i windowSize, const Vector2i framebufferSize, const Vector2 scaling)
+    UI::UI(const Vector2i windowSize, const Vector2i framebufferSize, const Vector2 scaling)
         : m_imgui{NoCreate}, m_currentWindowSize{windowSize}, m_currentFramebufferSize{framebufferSize},
-          m_showVertexMarkers{true}, m_showAbout{false}, m_inPinnedVertexLassoMode{false}, m_stepLength{0.0001f}, m_currentIntegrator{0}, m_currentSystem{0}, m_app{app}
+          m_showVertexMarkers{true}, m_showAbout{false}, m_inPinnedVertexLassoMode{false}, m_stepLength{0.0001f}, m_currentIntegrator{0}, m_currentSystem{0}
     {
         Utility::Resource rs("clothsim-data");
         m_licenceNotice = rs.get("LICENSE_NOTICE.txt");
@@ -83,12 +85,73 @@ namespace clothsim
 
         GL::Context::current().resetState(GL::Context::State::ExitExternal);
 
-        m_app.setIntegrator(forwardEulerStep);
-        m_app.setSystem<Oscillator>();
-        m_app.setStepLength(m_stepLength);
-        m_app.setStepsPerFrame(m_stepsPerFrame);
-
         draw();
+    }
+
+    void UI::setIntegratorCallback(std::function<void(std::function<void(System &, const Float)>)> f)
+    {
+        m_setIntegratorCallback = f;
+        (*m_setIntegratorCallback)(forwardEulerStep);
+    }
+
+    void UI::setSystemCallback(std::function<void(const std::size_t)> f)
+    {
+        m_setSystemCallback = f;
+        (*m_setSystemCallback)(m_currentSystem);
+    }
+
+    void UI::setStepLengthCallback(std::function<void(const Float)> f)
+    {
+        m_stepLengthCallback = f;
+        (*m_stepLengthCallback)(m_stepLength);
+    }
+
+    void UI::setStepsPerFrameCallback(std::function<void(const UnsignedInt)> f)
+    {
+        m_stepsPerFrameCallback = f;
+        (*m_stepsPerFrameCallback)(m_stepsPerFrame);
+    }
+
+    void UI::setVertexMarkerVisibilityCallback(std::function<void(const bool)> f)
+    {
+        m_vertexMarkersVisibilityCallback = f;
+        (*m_vertexMarkersVisibilityCallback)(m_showVertexMarkers);
+    }
+
+    void UI::setResetCallback(std::function<void(void)> f)
+    {
+        m_resetCallback = f;
+    }
+
+    void UI::setClearPinnedCallback(std::function<void(void)> f)
+    {
+        m_clearPinnedCallback = f;
+    }
+
+    void UI::setViewportClickCallback(std::function<void(const Vector2i)> f)
+    {
+        m_viewportClickCallback = f;
+    }
+
+    void UI::setLassoCallback(std::function<void(const UI::Lasso &lasso)> f)
+    {
+        m_lassoCallback = f;
+    }
+
+    void UI::setRotateCameraCallback(std::function<void(const Vector2i)> f)
+    {
+        m_rotateCameraCallback = f;
+    }
+
+    void UI::setZoomCameraCallback(std::function<void(const Float)> f)
+    {
+        m_zoomCameraCallback = f;
+    }
+
+    void UI::setSizeCallback(std::function<void(const Vector2ui)> f)
+    {
+        m_sizeCallback = f;
+        (*m_sizeCallback)(Vector2ui{m_currentSize});
     }
 
     void UI::resize(const Vector2i windowSize, const Vector2 scaling, const Vector2i framebufferSize)
@@ -135,46 +198,43 @@ namespace clothsim
         if (ImGui::Button(m_showVertexMarkers ? "Markers on" : "Markers off", ImVec2(110, 20)))
         {
             m_showVertexMarkers = !m_showVertexMarkers;
-            m_app.setVertexMarkersVisibility(m_showVertexMarkers);
+            (*m_vertexMarkersVisibilityCallback)(m_showVertexMarkers);
         }
 
         ImGui::SameLine();
 
         if (ImGui::Button("Reset", ImVec2(110, 20)))
         {
-            m_app.resetSimulation();
+            (*m_resetCallback)();
         }
 
         if (ImGui::SliderFloat("Step lenght", &m_stepLength, 0.00001f, 0.05f))
         {
-            m_app.setStepLength(m_stepLength);
+            (*m_stepLengthCallback)(m_stepLength);
         }
 
         if (ImGui::SliderInt("Steps per draw", reinterpret_cast<int *>(&m_stepsPerFrame), 1, 1000))
         {
-            m_app.setStepsPerFrame(m_stepsPerFrame);
+            (*m_stepsPerFrameCallback)(m_stepsPerFrame);
         }
 
-        if (m_currentSystem == 2)
+        if (m_sizeCallback)
         {
-            auto &cloth{dynamic_cast<Cloth &>(*m_app.getSystem())};
-
-            static Vector2i clothSize{cloth.getSize()};
             bool updated{false};
 
-            if (ImGui::SliderInt("Cloth size x", &clothSize.x(), 1, 40))
+            if (ImGui::SliderInt("Cloth size x", &m_currentSize.x(), 1, 40))
             {
                 updated = true;
             }
 
-            if (ImGui::SliderInt("Cloth size y", &clothSize.y(), 1, 40))
+            if (ImGui::SliderInt("Cloth size y", &m_currentSize.y(), 1, 40))
             {
                 updated = true;
             }
 
             if (updated)
             {
-                cloth.setSize(Vector2ui{clothSize});
+                (*m_sizeCallback)(Vector2ui{m_currentSize});
             }
         }
 
@@ -183,39 +243,28 @@ namespace clothsim
             switch (m_currentIntegrator)
             {
             case 0:
-                m_app.setIntegrator(forwardEulerStep);
+                (*m_setIntegratorCallback)(forwardEulerStep);
                 break;
             case 1:
-                m_app.setIntegrator(rk4Step);
+                (*m_setIntegratorCallback)(rk4Step);
                 break;
             case 2:
-                m_app.setIntegrator(backwardEulerStep);
+                (*m_setIntegratorCallback)(backwardEulerStep);
+                break;
+            case 3:
+                (*m_setIntegratorCallback)(backwardMidpointStep);
                 break;
             }
         }
 
         if (drawCombo("System", m_systems, m_currentSystem))
         {
-            switch (m_currentSystem)
-            {
-            case 0:
-                m_app.setSystem<Oscillator>();
-                break;
-            case 1:
-                m_app.setSystem<Planet>();
-                break;
-            case 2:
-                m_app.setSystem<Cloth>();
-                break;
-            }
+            (*m_setSystemCallback)(m_currentSystem);
         }
 
         if (ImGui::Button("Clear pinned", ImVec2(110, 20)))
         {
-            const auto &system{m_app.getSystem()};
-
-            if (system)
-                system->clearPinnedParticles();
+            (*m_clearPinnedCallback)();
         }
 
         ImGui::SameLine();
@@ -284,7 +333,7 @@ namespace clothsim
             }
             else if (event.button() == Platform::Application::MouseEvent::Button::Left)
             {
-                m_app.handleViewportClick(event.position());
+                (*m_viewportClickCallback)(event.position());
                 event.setAccepted();
                 return true;
             }
@@ -305,7 +354,7 @@ namespace clothsim
         {
             m_inPinnedVertexLassoMode = false;
 
-            m_app.pinVertices(m_currentLasso);
+            (*m_lassoCallback)(m_currentLasso);
             m_currentLasso.clear();
             event.setAccepted();
 
@@ -351,7 +400,7 @@ namespace clothsim
         }
         else if (event.buttons() & Platform::Application::MouseMoveEvent::Button::Left)
         {
-            m_app.rotateCamera(event.relativePosition());
+            (*m_rotateCameraCallback)(event.relativePosition());
             accept = true;
         }
 
@@ -365,7 +414,7 @@ namespace clothsim
         {
             if (event.offset().y() != 0)
             {
-                m_app.zoomCamera(event.offset().y());
+                (*m_zoomCameraCallback)(event.offset().y());
                 event.setAccepted();
                 return true;
             }

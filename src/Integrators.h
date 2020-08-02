@@ -5,6 +5,7 @@
 
 namespace clothsim
 {
+    void backwardMidpointStep(System &system, const Float dt);
     void forwardEulerStep(System &system, const Float dt);
     void backwardEulerStep(System &system, const Float dt);
     void rk4Step(System &system, const Float dt);
