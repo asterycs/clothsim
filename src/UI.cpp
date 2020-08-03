@@ -80,7 +80,7 @@ namespace clothsim
 
     UI::UI(const Vector2i windowSize, const Vector2i framebufferSize, const Vector2 scaling)
         : m_imgui{NoCreate}, m_currentWindowSize{windowSize}, m_currentFramebufferSize{framebufferSize},
-          m_showVertexMarkers{true}, m_showAbout{false}, m_inPinnedVertexLassoMode{false}, m_stepLength{0.0001f}, m_currentIntegrator{0}, m_currentSystem{0}
+          m_showVertexMarkers{true}, m_showAbout{false}, m_inPinnedVertexLassoMode{false}
     {
         Utility::Resource rs("clothsim-data");
         m_licenceNotice = rs.get("LICENSE_NOTICE.txt");
@@ -94,70 +94,82 @@ namespace clothsim
         draw();
     }
 
-    void UI::setIntegratorCallback(std::function<void(std::function<void(System &, const Float)>)> f)
+    void UI::setIntegratorCallback(opt<fun<void(std::function<void(System &, const Float)>)>> f)
     {
         m_setIntegratorCallback = f;
-        (*m_setIntegratorCallback)(forwardEulerStep);
+
+        if (m_setIntegratorCallback)
+            (*m_setIntegratorCallback)(forwardEulerStep);
     }
 
-    void UI::setSystemCallback(std::function<void(const std::size_t)> f)
+    void UI::setSystemCallback(opt<fun<void(const std::size_t)>> f)
     {
         m_setSystemCallback = f;
-        (*m_setSystemCallback)(m_currentSystem);
+
+        if (m_setSystemCallback)
+            (*m_setSystemCallback)(m_currentSystem);
     }
 
-    void UI::setStepLengthCallback(std::function<void(const Float)> f)
+    void UI::setStepLengthCallback(opt<fun<void(const Float)>> f)
     {
         m_stepLengthCallback = f;
-        (*m_stepLengthCallback)(m_stepLength);
+
+        if (m_stepLengthCallback)
+            (*m_stepLengthCallback)(m_stepLength);
     }
 
-    void UI::setStepsPerFrameCallback(std::function<void(const UnsignedInt)> f)
+    void UI::setStepsPerFrameCallback(opt<fun<void(const UnsignedInt)>> f)
     {
         m_stepsPerFrameCallback = f;
-        (*m_stepsPerFrameCallback)(m_stepsPerFrame);
+
+        if (m_stepsPerFrameCallback)
+            (*m_stepsPerFrameCallback)(m_stepsPerFrame);
     }
 
-    void UI::setVertexMarkerVisibilityCallback(std::function<void(const bool)> f)
+    void UI::setVertexMarkerVisibilityCallback(opt<fun<void(const bool)>> f)
     {
         m_vertexMarkersVisibilityCallback = f;
-        (*m_vertexMarkersVisibilityCallback)(m_showVertexMarkers);
+
+        if (m_vertexMarkersVisibilityCallback)
+            (*m_vertexMarkersVisibilityCallback)(m_showVertexMarkers);
     }
 
-    void UI::setResetCallback(std::function<void(void)> f)
+    void UI::setResetCallback(opt<fun<void(void)>> f)
     {
         m_resetCallback = f;
     }
 
-    void UI::setClearPinnedCallback(std::function<void(void)> f)
+    void UI::setClearPinnedCallback(opt<fun<void(void)>> f)
     {
         m_clearPinnedCallback = f;
     }
 
-    void UI::setViewportClickCallback(std::function<void(const Vector2i)> f)
+    void UI::setViewportClickCallback(opt<fun<void(const Vector2i)>> f)
     {
         m_viewportClickCallback = f;
     }
 
-    void UI::setLassoCallback(std::function<void(const UI::Lasso &lasso)> f)
+    void UI::setLassoCallback(opt<fun<void(const UI::Lasso &lasso)>> f)
     {
         m_lassoCallback = f;
     }
 
-    void UI::setRotateCameraCallback(std::function<void(const Vector2i)> f)
+    void UI::setRotateCameraCallback(opt<fun<void(const Vector2i)>> f)
     {
         m_rotateCameraCallback = f;
     }
 
-    void UI::setZoomCameraCallback(std::function<void(const Float)> f)
+    void UI::setZoomCameraCallback(opt<fun<void(const Float)>> f)
     {
         m_zoomCameraCallback = f;
     }
 
-    void UI::setSizeCallback(std::function<void(const Vector2ui)> f)
+    void UI::setSizeCallback(opt<fun<void(const Vector2ui)>> f)
     {
         m_sizeCallback = f;
-        (*m_sizeCallback)(Vector2ui{m_currentSize});
+
+        if (m_sizeCallback)
+            (*m_sizeCallback)(Vector2ui{m_currentSize});
     }
 
     void UI::resize(const Vector2i windowSize, const Vector2 scaling, const Vector2i framebufferSize)

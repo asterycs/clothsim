@@ -7,8 +7,8 @@ in highp vec3 vertexColor;
 
 layout(location = 0) out highp vec4 outColor;
 layout(location = 1) out highp int outObjectId;
-layout(location = 2) out highp vec4 outSumColor;
-layout(location = 3) out highp vec4 outSumWeight;
+layout(location = 2) out highp vec4 outAccum;
+layout(location = 3) out highp vec4 outReveal;
 
 void main() {
     mediump vec3 normalizedTransformedNormal = normalize(transformedNormal);
@@ -35,7 +35,7 @@ void main() {
     highp float linearDepth = viewDepth * depthScale;
     highp float weight = clamp(0.03 / (1e-5 + pow(linearDepth, 4.0)), 1e-2, 3e3);
 
-    outSumColor = vec4(color.rgb * color.a, color.a) * weight;
-    outSumWeight = vec4(color.a);
+    outAccum = vec4(color.rgb * color.a, color.a) * weight;
+    outReveal = vec4(color.a);
     outColor = vec4(0.0f, 0.0f, 0.0f, 0.0f); // Dummy output, some browsers need it
 }

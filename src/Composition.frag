@@ -8,15 +8,15 @@ layout(location = 0) out highp vec4 outColor;
 void main(void)
 {
     highp vec2 texCoord = gl_FragCoord.xy/vec2(viewportSize);
-    highp vec4 sumTransparentColor = texture(TransparencyAccumulation, texCoord);
-    highp float transmittance = texture(TransparencyRevealage,  texCoord).r;
-    highp vec3 averageTransparentColor = sumTransparentColor.rgb / max(sumTransparentColor.a, 0.00001);
+    highp vec4 accumulation = texture(TransparencyAccumulation, texCoord);
+    highp float revealage = texture(TransparencyRevealage,  texCoord).r;
+    highp vec3 averageTransparentColor = accumulation.rgb / clamp(accumulation.a, 1e-4, 5e4);
     
     // Black background (vec3(0.f))
-    highp vec3 transparentFinal = averageTransparentColor * (1.0f - transmittance) + vec3(0.f) * transmittance;
+    averageTransparentColor = averageTransparentColor * (1.0f - revealage) + vec3(0.f) * revealage;
 
     highp vec4 opaqueColor = texture(Opaque, texCoord);
     
-    outColor.rgb = transparentFinal * (1.f - opaqueColor.a) + opaqueColor.rgb;
+    outColor.rgb = averageTransparentColor * (1.f - opaqueColor.a) + opaqueColor.rgb;
     outColor.a = 1.f;
 }

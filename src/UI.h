@@ -23,6 +23,11 @@ namespace clothsim
     class UI
     {
     public:
+        template <typename T>
+        using opt = std::optional<T>;
+        template <typename T>
+        using fun = std::function<T>;
+
         struct Lasso
         {
             std::vector<Vector2i> pixels;
@@ -51,18 +56,18 @@ namespace clothsim
         bool handleMouseScrollEvent(Platform::Application::MouseScrollEvent &event);
         bool handleTextInputEvent(Platform::Application::TextInputEvent &event);
 
-        void setIntegratorCallback(std::function<void(std::function<void(System &, const Float)>)> f);
-        void setSystemCallback(std::function<void(const std::size_t)> f);
-        void setStepLengthCallback(std::function<void(const Float)> f);
-        void setStepsPerFrameCallback(std::function<void(const UnsignedInt)> f);
-        void setVertexMarkerVisibilityCallback(std::function<void(const bool)> f);
-        void setResetCallback(std::function<void(void)> f);
-        void setClearPinnedCallback(std::function<void(void)> f);
-        void setViewportClickCallback(std::function<void(const Vector2i)> f);
-        void setLassoCallback(std::function<void(const UI::Lasso &lasso)> f);
-        void setRotateCameraCallback(std::function<void(const Vector2i)> f);
-        void setZoomCameraCallback(std::function<void(const Float)> f);
-        void setSizeCallback(std::function<void(const Vector2ui)> f);
+        void setIntegratorCallback(opt<fun<void(std::function<void(System &, const Float)>)>> f);
+        void setSystemCallback(opt<fun<void(const std::size_t)>> f);
+        void setStepLengthCallback(opt<fun<void(const Float)>> f);
+        void setStepsPerFrameCallback(opt<fun<void(const UnsignedInt)>> f);
+        void setVertexMarkerVisibilityCallback(opt<fun<void(const bool)>> f);
+        void setResetCallback(opt<fun<void(void)>> f);
+        void setClearPinnedCallback(opt<fun<void(void)>> f);
+        void setViewportClickCallback(opt<fun<void(const Vector2i)>> f);
+        void setLassoCallback(opt<fun<void(const UI::Lasso &lasso)>> f);
+        void setRotateCameraCallback(opt<fun<void(const Vector2i)>> f);
+        void setZoomCameraCallback(opt<fun<void(const Float)>> f);
+        void setSizeCallback(opt<fun<void(const Vector2ui)>> f);
 
     private:
         bool drawCombo(const std::string &text, const std::vector<std::string> &options, std::size_t &optionPtr);
@@ -71,18 +76,18 @@ namespace clothsim
         void drawLasso();
         std::vector<Vector2> toScreenCoordinates(const std::vector<Vector2i> &pixels);
 
-        std::optional<std::function<void(std::function<void(System &system, const Float dt)>)>> m_setIntegratorCallback{};
-        std::optional<std::function<void(const std::size_t)>> m_setSystemCallback;
-        std::optional<std::function<void(const Float)>> m_stepLengthCallback;
-        std::optional<std::function<void(const UnsignedInt)>> m_stepsPerFrameCallback;
-        std::optional<std::function<void(const bool)>> m_vertexMarkersVisibilityCallback;
-        std::optional<std::function<void(void)>> m_resetCallback;
-        std::optional<std::function<void(void)>> m_clearPinnedCallback;
-        std::optional<std::function<void(const Vector2i)>> m_viewportClickCallback;
-        std::optional<std::function<void(const UI::Lasso &)>> m_lassoCallback;
-        std::optional<std::function<void(const Vector2i)>> m_rotateCameraCallback;
-        std::optional<std::function<void(const Float)>> m_zoomCameraCallback;
-        std::optional<std::function<void(const Vector2ui)>> m_sizeCallback;
+        std::optional<fun<void(std::function<void(System &system, const Float dt)>)>> m_setIntegratorCallback{};
+        std::optional<fun<void(const std::size_t)>> m_setSystemCallback;
+        std::optional<fun<void(const Float)>> m_stepLengthCallback;
+        std::optional<fun<void(const UnsignedInt)>> m_stepsPerFrameCallback;
+        std::optional<fun<void(const bool)>> m_vertexMarkersVisibilityCallback;
+        std::optional<fun<void(void)>> m_resetCallback;
+        std::optional<fun<void(void)>> m_clearPinnedCallback;
+        std::optional<fun<void(const Vector2i)>> m_viewportClickCallback;
+        std::optional<fun<void(const UI::Lasso &)>> m_lassoCallback;
+        std::optional<fun<void(const Vector2i)>> m_rotateCameraCallback;
+        std::optional<fun<void(const Float)>> m_zoomCameraCallback;
+        std::optional<fun<void(const Vector2ui)>> m_sizeCallback;
 
         ImGuiIntegration::Context m_imgui{NoCreate};
         Vector2i m_currentWindowSize;
@@ -96,13 +101,13 @@ namespace clothsim
         Vector2i m_lassoPreviousPosition;
 
         Float m_stepLength{0.0001f};
-        UnsignedInt m_stepsPerFrame{100};
+        UnsignedInt m_stepsPerFrame{5};
 
         std::vector<std::string> m_integrators{std::string{"Forward Euler"}, std::string{"RK4"}, std::string{"Backward Euler"}, std::string{"Implicit midpoint"}};
-        std::size_t m_currentIntegrator;
+        std::size_t m_currentIntegrator{0};
 
         std::vector<std::string> m_systems{std::string{"First order oscillator"}, std::string{"Planet"}, std::string{"Cloth"}};
-        std::size_t m_currentSystem;
+        std::size_t m_currentSystem{2};
         Vector2i m_currentSize{3, 3};
 
         std::string m_licenceNotice;

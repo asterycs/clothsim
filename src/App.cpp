@@ -35,12 +35,6 @@ namespace clothsim
         MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GLES300);
 #endif
 
-        // Note about multisampling:
-        // Multisampled storage can be set with
-        // renderbuffer.setStorageMultisample(8, GL::RenderbufferFormat::RGBA8, GL::defaultFramebuffer.viewport().size());
-        // However, OpenGL requires all attached renderbuffers to have the same number of samples.
-        // Thus the object picking would need to be done in a separate render pass with single sample renderbuffer.
-
         const auto vpSize{GL::defaultFramebuffer.viewport().size()};
 
         m_color.setBaseLevel(0)
@@ -52,7 +46,8 @@ namespace clothsim
         m_particleId.setStorage(GL::RenderbufferFormat::R32I, vpSize);
         m_depth.setStorage(GL::RenderbufferFormat::DepthComponent24, vpSize);
 
-        // Used for Weight blended order-independent transparency: http://jcgt.org/published/0002/02/09/
+        // Weight blended order-independent transparency: http://jcgt.org/published/0002/02/09/
+        // TODO: Currently not implemented correctly.
         m_transparencyAccumulation.setBaseLevel(0)
             .setMaxLevel(0)
             .setMagnificationFilter(GL::SamplerFilter::Nearest)
@@ -64,7 +59,7 @@ namespace clothsim
             .setMaxLevel(0)
             .setMagnificationFilter(GL::SamplerFilter::Nearest)
             .setMinificationFilter(GL::SamplerFilter::Nearest)
-            .setImage(0, GL::TextureFormat::R8, ImageView2D{PixelFormat::R8Unorm, vpSize});
+            .setImage(0, GL::TextureFormat::R32F, ImageView2D{PixelFormat::R32F, vpSize});
 
         m_framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{m_phongShader.ColorOutput}, m_color, 0)
             .attachRenderbuffer(GL::Framebuffer::ColorAttachment{m_phongShader.ObjectIdOutput}, m_particleId)
@@ -136,7 +131,7 @@ namespace clothsim
 
     void App::setSystem(const std::size_t i)
     {
-        m_ui.setSizeCallback([](const Vector2ui) {});
+        m_ui.setSizeCallback({});
 
         switch (i)
         {
@@ -186,8 +181,8 @@ namespace clothsim
                          ImageView2D{GL::PixelFormat::RGBA, GL::PixelType::UnsignedByte, size});
         m_transparencyAccumulation.setImage(0, GL::TextureFormat::RGBA16F,
                                             ImageView2D{GL::PixelFormat::RGBA, GL::PixelType::Float, size});
-        m_transparencyRevealage.setImage(0, GL::TextureFormat::R8,
-                                         ImageView2D{GL::PixelFormat::Red, GL::PixelType::UnsignedByte, size});
+        m_transparencyRevealage.setImage(0, GL::TextureFormat::R32F,
+                                         ImageView2D{PixelFormat::R32F, size});
     }
 
     void App::resizeRenderbuffers(const Vector2i &size)
@@ -235,12 +230,15 @@ namespace clothsim
         GL::Mesh fullScreenTriangle;
         fullScreenTriangle.setCount(3).setPrimitive(GL::MeshPrimitive::Triangles);
 
+        // TODO: Correct order independent transparency
+        //Magnum::GL::Renderer::setBlendFunction(Magnum::GL::Renderer::BlendFunction::OneMinusSourceAlpha,
+        //                                       Magnum::GL::Renderer::BlendFunction::SourceAlpha);
+
         m_compositionShader.setOpaqueTexture(m_color);
         m_compositionShader.setTransparencyAccumulationTexture(m_transparencyAccumulation);
         m_compositionShader.setTransparencyRevealageTexture(m_transparencyRevealage);
         m_compositionShader.setViewportSize(m_framebuffer.viewport().size());
         m_compositionShader.draw(fullScreenTriangle);
-        //fullScreenTriangle.draw(m_compositionShader);
 
         GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
 

@@ -138,12 +138,10 @@ namespace clothsim
     void Drawable::drawMesh(const Matrix4 &viewProjection, const Magnum::SceneGraph::Camera3D &camera)
     {
         Magnum::GL::Renderer::disable(Magnum::GL::Renderer::Feature::DepthTest);
-        Magnum::GL::Renderer::enable(Magnum::GL::Renderer::Feature::Blending);
-        Magnum::GL::Renderer::setBlendEquation(Magnum::GL::Renderer::BlendEquation::Add,
-                                               Magnum::GL::Renderer::BlendEquation::Add);
-        Magnum::GL::Renderer::setBlendFunction(Magnum::GL::Renderer::BlendFunction::SourceAlpha,
-                                               Magnum::GL::Renderer::BlendFunction::OneMinusSourceAlpha);
         Magnum::GL::Renderer::disable(Magnum::GL::Renderer::Feature::FaceCulling);
+        Magnum::GL::Renderer::enable(Magnum::GL::Renderer::Feature::Blending);
+        Magnum::GL::Renderer::setBlendFunction(m_phongShader.TransparencyAccumulationOutput, GL::Renderer::BlendFunction::One, GL::Renderer::BlendFunction::One);
+        Magnum::GL::Renderer::setBlendFunction(m_phongShader.TransparencyRevealageOutput, GL::Renderer::BlendFunction::Zero, GL::Renderer::BlendFunction::OneMinusSourceAlpha);
 
         m_phongShader.setTransformationMatrix(viewProjection)
             .setNormalMatrix(viewProjection.rotationScaling())

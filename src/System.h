@@ -21,7 +21,7 @@ namespace clothsim
 	class System : public Drawable
 	{
 	public:
-		using ScalarT = float;
+		using ScalarT = double;
 		using Vector3 = Eigen::Matrix<ScalarT, 3, 1>;
 		using Vector = Eigen::Matrix<ScalarT, Eigen::Dynamic, 1>;
 		using Matrix3 = Eigen::Matrix<ScalarT, 3, 3>;
