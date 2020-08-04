@@ -2,8 +2,8 @@ This program is distributed under the MIT license.
 The source of this program can be found at
 https://github.com/asterycs/clothsim
 
-This program uses both MPL 2.0 and LGPLv2.1 components of the Eigen
-library. The source of the eigen library can be found here:
+This program uses the Eigen library. The source of the eigen library
+can be found here:
 https://bitbucket.org/eigen/eigen/src/default/
 http://eigen.tuxfamily.org/
 
