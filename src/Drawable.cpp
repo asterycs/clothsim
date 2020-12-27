@@ -40,10 +40,10 @@ namespace clothsim
 
     void Drawable::initMesh()
     {
-        const Corrade::Containers::Array<Vector3> verticesExpanded =
-            Magnum::MeshTools::duplicate<UnsignedInt, Vector3>(m_triangleIndices, m_indexedVertices);
+        const Corrade::Containers::Array<Vector3> verticesExpanded{
+            Magnum::MeshTools::duplicate<UnsignedInt, Vector3>(m_triangleIndices, m_indexedVertices)};
 
-        const Corrade::Containers::Array<Vector3> normals = Magnum::MeshTools::generateFlatNormals(verticesExpanded);
+        const Corrade::Containers::Array<Vector3> normals{Magnum::MeshTools::generateFlatNormals(verticesExpanded)};
 
         std::vector<Vector3> colors(m_triangleIndices.size(), Vector3{1.f, 1.f, 1.f});
 
@@ -58,11 +58,11 @@ namespace clothsim
 
     void Drawable::initVertexMarkers()
     {
-        const auto data = Magnum::Primitives::uvSphereSolid(16, 32);
+        const auto data{Magnum::Primitives::uvSphereSolid(16, 32)};
 
         constexpr float radius{0.02f};
-        const auto vertices = Magnum::MeshTools::transformPoints(Matrix4::scaling(Vector3{radius}), data.positions3DAsArray(0));
-        const auto normals = data.normalsAsArray(0);
+        const auto vertices{Magnum::MeshTools::transformPoints(Matrix4::scaling(Vector3{radius}), data.positions3DAsArray(0))};
+        const auto normals{data.normalsAsArray(0)};
 
         m_vertexMarkerVertexBuffer.setTargetHint(Magnum::GL::Buffer::TargetHint::Array);
         m_vertexMarkerVertexBuffer.setData(Magnum::MeshTools::interleave(vertices, normals),
@@ -79,8 +79,7 @@ namespace clothsim
 
     void Drawable::setVertexColors(Corrade::Containers::Array<Color3> indexedColors)
     {
-        const auto colorsExpanded =
-            Magnum::MeshTools::duplicate<UnsignedInt, Color3>(m_triangleIndices, indexedColors);
+        const auto colorsExpanded{Magnum::MeshTools::duplicate<UnsignedInt, Color3>(m_triangleIndices, indexedColors)};
 
         m_colorBuffer.setData(colorsExpanded, Magnum::GL::BufferUsage::StaticDraw);
     }
@@ -125,28 +124,15 @@ namespace clothsim
         }
     }
 
-    Float Drawable::getDepthScale() const
-    {
-        return m_depthScale;
-    }
-
-    void Drawable::setDepthScale(const Float scale)
-    {
-        m_depthScale = scale;
-    }
-
     void Drawable::drawMesh(const Matrix4 &viewProjection, const Magnum::SceneGraph::Camera3D &camera)
     {
         Magnum::GL::Renderer::disable(Magnum::GL::Renderer::Feature::DepthTest);
         Magnum::GL::Renderer::disable(Magnum::GL::Renderer::Feature::FaceCulling);
         Magnum::GL::Renderer::enable(Magnum::GL::Renderer::Feature::Blending);
-        Magnum::GL::Renderer::setBlendFunction(m_phongShader.TransparencyAccumulationOutput, GL::Renderer::BlendFunction::One, GL::Renderer::BlendFunction::One);
-        Magnum::GL::Renderer::setBlendFunction(m_phongShader.TransparencyRevealageOutput, GL::Renderer::BlendFunction::Zero, GL::Renderer::BlendFunction::OneMinusSourceAlpha);
 
         m_phongShader.setTransformationMatrix(viewProjection)
             .setNormalMatrix(viewProjection.rotationScaling())
             .setProjectionMatrix(camera.projectionMatrix())
-            .setDepthScale(m_depthScale)
             .setLightPosition({13.0f, 2.0f, 5.0f}); // Relative to camera
 
         m_phongShader.draw(m_triangles);

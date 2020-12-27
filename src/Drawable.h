@@ -31,9 +31,6 @@ namespace clothsim
 
         void drawVertexMarkers(const bool);
 
-        Float getDepthScale() const;
-        void setDepthScale(const Float scale);
-
     private:
         void draw(const Matrix4 &viewProjection, Magnum::SceneGraph::Camera3D &camera) override;
         void drawMesh(const Matrix4 &viewProjection, const Magnum::SceneGraph::Camera3D &camera);
@@ -43,7 +40,6 @@ namespace clothsim
         void initMesh();
 
         bool m_drawVertexMarkers;
-        Float m_depthScale{0.5f};
 
         PhongIdShader &m_phongShader;
         VertexMarkerShader &m_vertexShader;

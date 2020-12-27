@@ -46,34 +46,11 @@ namespace clothsim
         m_particleId.setStorage(GL::RenderbufferFormat::R32I, vpSize);
         m_depth.setStorage(GL::RenderbufferFormat::DepthComponent24, vpSize);
 
-        // Weight blended order-independent transparency: http://jcgt.org/published/0002/02/09/
-        // TODO: Currently not implemented correctly.
-        m_transparencyAccumulation.setBaseLevel(0)
-            .setMaxLevel(0)
-            .setMagnificationFilter(GL::SamplerFilter::Nearest)
-            .setMinificationFilter(GL::SamplerFilter::Nearest)
-            .setImage(0, GL::TextureFormat::RGBA32F,
-                      ImageView2D{PixelFormat::RGBA32F, vpSize});
-
-        m_transparencyRevealage.setBaseLevel(0)
-            .setMaxLevel(0)
-            .setMagnificationFilter(GL::SamplerFilter::Nearest)
-            .setMinificationFilter(GL::SamplerFilter::Nearest)
-            .setImage(0, GL::TextureFormat::R32F, ImageView2D{PixelFormat::R32F, vpSize});
-
         m_framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{m_phongShader.ColorOutput}, m_color, 0)
             .attachRenderbuffer(GL::Framebuffer::ColorAttachment{m_phongShader.ObjectIdOutput}, m_particleId)
-            .attachTexture(GL::Framebuffer::ColorAttachment{m_phongShader.TransparencyAccumulationOutput},
-                           m_transparencyAccumulation, 0)
-            .attachTexture(GL::Framebuffer::ColorAttachment{m_phongShader.TransparencyRevealageOutput},
-                           m_transparencyRevealage, 0)
             .attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, m_depth)
             .mapForDraw({{PhongIdShader::ColorOutput, GL::Framebuffer::ColorAttachment{m_phongShader.ColorOutput}},
-                         {PhongIdShader::ObjectIdOutput, GL::Framebuffer::ColorAttachment{m_phongShader.ObjectIdOutput}},
-                         {PhongIdShader::TransparencyAccumulationOutput,
-                          GL::Framebuffer::ColorAttachment{m_phongShader.TransparencyAccumulationOutput}},
-                         {PhongIdShader::TransparencyRevealageOutput,
-                          GL::Framebuffer::ColorAttachment{m_phongShader.TransparencyRevealageOutput}}});
+                         {PhongIdShader::ObjectIdOutput, GL::Framebuffer::ColorAttachment{m_phongShader.ObjectIdOutput}}});
 
         CORRADE_INTERNAL_ASSERT(m_framebuffer.checkStatus(GL::FramebufferTarget::Draw) == GL::Framebuffer::Status::Complete);
 
@@ -179,10 +156,6 @@ namespace clothsim
     {
         m_color.setImage(0, GL::TextureFormat::RGBA8,
                          ImageView2D{GL::PixelFormat::RGBA, GL::PixelType::UnsignedByte, size});
-        m_transparencyAccumulation.setImage(0, GL::TextureFormat::RGBA16F,
-                                            ImageView2D{GL::PixelFormat::RGBA, GL::PixelType::Float, size});
-        m_transparencyRevealage.setImage(0, GL::TextureFormat::R32F,
-                                         ImageView2D{PixelFormat::R32F, size});
     }
 
     void App::resizeRenderbuffers(const Vector2i &size)
@@ -214,40 +187,18 @@ namespace clothsim
 
         m_framebuffer.clearColor(m_phongShader.ColorOutput, Vector4{0.0f})
             .clearColor(m_phongShader.ObjectIdOutput, Vector4i{-1})
-            .clearColor(m_phongShader.TransparencyAccumulationOutput, Vector4{0.0f})
-            .clearColor(m_phongShader.TransparencyRevealageOutput, Vector4{1.f})
             .clearDepth(1.0f)
             .bind();
 
         m_camera->draw(m_drawableGroup);
+        m_ui.draw();
 
-        GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth)
+        GL::defaultFramebuffer.clear(GL::FramebufferClear::Color|GL::FramebufferClear::Depth)
             .bind();
 
-        // Compose into default framebuffer
-        GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
-
-        GL::Mesh fullScreenTriangle;
-        fullScreenTriangle.setCount(3).setPrimitive(GL::MeshPrimitive::Triangles);
-
-        // TODO: Correct order independent transparency
-        //Magnum::GL::Renderer::setBlendFunction(Magnum::GL::Renderer::BlendFunction::OneMinusSourceAlpha,
-        //                                       Magnum::GL::Renderer::BlendFunction::SourceAlpha);
-
-        m_compositionShader.setOpaqueTexture(m_color);
-        m_compositionShader.setTransparencyAccumulationTexture(m_transparencyAccumulation);
-        m_compositionShader.setTransparencyRevealageTexture(m_transparencyRevealage);
-        m_compositionShader.setViewportSize(m_framebuffer.viewport().size());
-        m_compositionShader.draw(fullScreenTriangle);
-
-        GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-
-        // Blit render target attachments for debugging
-        //_framebuffer.mapForRead(GL::Framebuffer::ColorAttachment{_phongShader.TransparencyAccumulationOutput});
-        //GL::AbstractFramebuffer::blit(_framebuffer, GL::defaultFramebuffer,
-        //                              {{}, _framebuffer.viewport().size()}, GL::FramebufferBlit::Color);
-
-        m_ui.draw();
+        m_framebuffer.mapForRead(GL::Framebuffer::ColorAttachment{m_phongShader.ColorOutput});
+        GL::AbstractFramebuffer::blit(m_framebuffer, GL::defaultFramebuffer,
+            {{}, m_framebuffer.viewport().size()}, GL::FramebufferBlit::Color);
 
         swapBuffers();
         redraw();

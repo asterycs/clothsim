@@ -76,13 +76,12 @@ namespace clothsim
 
         PhongIdShader m_phongShader{};
         VertexMarkerShader m_vertexShader{};
-        CompositionShader m_compositionShader{};
 
         std::unique_ptr<System> m_system{};
 
         Magnum::GL::Framebuffer m_framebuffer;
         Magnum::GL::Renderbuffer m_particleId{}, m_depth{};
-        Magnum::GL::Texture2D m_color{}, m_transparencyAccumulation{}, m_transparencyRevealage{};
+        Magnum::GL::Texture2D m_color{};
 
         Vector2 m_cameraTrackballAngles{0.f};
 
