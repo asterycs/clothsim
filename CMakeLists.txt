@@ -26,6 +26,8 @@ find_package(MagnumIntegration REQUIRED
         ImGui
         Eigen)
 
+set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")
+
 corrade_add_resource(clothsim_RESOURCES src/resources.conf)
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 

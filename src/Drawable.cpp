@@ -26,10 +26,6 @@ namespace clothsim
         initVertexMarkers();
     }
 
-    Drawable::~Drawable()
-    {
-    }
-
     void Drawable::setVertexData(Corrade::Containers::Array<Vector3> indexedVertices, Corrade::Containers::Array<UnsignedInt> triangleIndices)
     {
         m_indexedVertices = std::move(indexedVertices);

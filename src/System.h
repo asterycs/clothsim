@@ -40,12 +40,12 @@ namespace clothsim
 		virtual SparseMatrix evalJacobian(const Vector &state) const = 0;
 
 		virtual void reset() = 0;
+		virtual Corrade::Containers::Array<Magnum::Vector3> getParticlePositions(const Vector &state) const = 0;
+
 		virtual ScalarT getParticleMass() const;
 
 		const Vector &getState() const;
 		void setState(Vector newState);
-
-		virtual Corrade::Containers::Array<Magnum::Vector3> getParticlePositions(const Vector &state) const = 0;
 
 		void setTriangleIndices(Corrade::Containers::Array<UnsignedInt> triangleIndices);
 

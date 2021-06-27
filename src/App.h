@@ -18,7 +18,6 @@
 #include <Magnum/GL/Renderbuffer.h>
 
 #include <memory>
-#include <optional>
 
 #include "Cloth.h"
 #include "Integrators.h"
@@ -30,6 +29,7 @@
 namespace clothsim
 {
     using Scene3D = Magnum::SceneGraph::Scene<Magnum::SceneGraph::MatrixTransformation3D>;
+    using Integrator = std::function<void(System &, const float)>;
 
     class App : public Platform::Application
     {
@@ -87,7 +87,7 @@ namespace clothsim
 
         Float m_stepLength{0.0f};
         UnsignedInt m_stepsPerFrame{0};
-        std::optional<std::function<void(System &, const float)>> m_integrator{};
+        Integrator m_integrator{forwardEulerStep};
 
         UI m_ui;
     };

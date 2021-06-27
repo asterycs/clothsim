@@ -19,11 +19,10 @@ namespace clothsim
     class Drawable : public Object3D, Magnum::SceneGraph::Drawable3D
     {
     public:
-        explicit Drawable(PhongIdShader &phongShader,
-                          VertexMarkerShader &vertexShader,
-                          Object3D &parent,
-                          Magnum::SceneGraph::DrawableGroup3D &drawables);
-        virtual ~Drawable();
+        Drawable(PhongIdShader &phongShader,
+                 VertexMarkerShader &vertexShader,
+                 Object3D &parent,
+                 Magnum::SceneGraph::DrawableGroup3D &drawables);
 
         void setVertexData(Corrade::Containers::Array<Vector3> indexedVertices, Corrade::Containers::Array<UnsignedInt> triangleIndices);
         void setVertexColors(Corrade::Containers::Array<Color3> indexedColors);

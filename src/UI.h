@@ -20,14 +20,11 @@ namespace clothsim
 {
     using namespace Magnum;
 
+    class App;
+
     class UI
     {
     public:
-        template <typename T>
-        using opt = std::optional<T>;
-        template <typename T>
-        using fun = std::function<T>;
-
         struct Lasso
         {
             std::vector<Vector2i> pixels;
@@ -40,9 +37,9 @@ namespace clothsim
             }
         };
 
-        explicit UI(const Vector2i windowSize, const Vector2i framebufferSize, const Vector2 scaling);
+        UI(Vector2i windowSize, Vector2i framebufferSize, Vector2 scaling, App& app);
 
-        void resize(const Vector2i windowSize, const Vector2 scaling, const Vector2i framebufferSize);
+        void resize(Vector2i windowSize, Vector2 scaling, Vector2i framebufferSize);
         void draw();
 
         bool wantsTextInput();
@@ -56,19 +53,6 @@ namespace clothsim
         bool handleMouseScrollEvent(Platform::Application::MouseScrollEvent &event);
         bool handleTextInputEvent(Platform::Application::TextInputEvent &event);
 
-        void setIntegratorCallback(opt<fun<void(std::function<void(System &, const Float)>)>> f);
-        void setSystemCallback(opt<fun<void(const std::size_t)>> f);
-        void setStepLengthCallback(opt<fun<void(const Float)>> f);
-        void setStepsPerFrameCallback(opt<fun<void(const UnsignedInt)>> f);
-        void setVertexMarkerVisibilityCallback(opt<fun<void(const bool)>> f);
-        void setResetCallback(opt<fun<void(void)>> f);
-        void setClearPinnedCallback(opt<fun<void(void)>> f);
-        void setViewportClickCallback(opt<fun<void(const Vector2i)>> f);
-        void setLassoCallback(opt<fun<void(const UI::Lasso &lasso)>> f);
-        void setRotateCameraCallback(opt<fun<void(const Vector2i)>> f);
-        void setZoomCameraCallback(opt<fun<void(const Float)>> f);
-        void setSizeCallback(opt<fun<void(const Vector2ui)>> f);
-
     private:
         bool drawCombo(const std::string &text, const std::vector<std::string> &options, std::size_t &optionPtr);
 
@@ -76,18 +60,7 @@ namespace clothsim
         void drawLasso();
         std::vector<Vector2> toScreenCoordinates(const std::vector<Vector2i> &pixels);
 
-        std::optional<fun<void(std::function<void(System &system, const Float dt)>)>> m_setIntegratorCallback{};
-        std::optional<fun<void(const std::size_t)>> m_setSystemCallback;
-        std::optional<fun<void(const Float)>> m_stepLengthCallback;
-        std::optional<fun<void(const UnsignedInt)>> m_stepsPerFrameCallback;
-        std::optional<fun<void(const bool)>> m_vertexMarkersVisibilityCallback;
-        std::optional<fun<void(void)>> m_resetCallback;
-        std::optional<fun<void(void)>> m_clearPinnedCallback;
-        std::optional<fun<void(const Vector2i)>> m_viewportClickCallback;
-        std::optional<fun<void(const UI::Lasso &)>> m_lassoCallback;
-        std::optional<fun<void(const Vector2i)>> m_rotateCameraCallback;
-        std::optional<fun<void(const Float)>> m_zoomCameraCallback;
-        std::optional<fun<void(const Vector2ui)>> m_sizeCallback;
+        App& m_app;
 
         ImGuiIntegration::Context m_imgui{NoCreate};
         Vector2i m_currentWindowSize;
