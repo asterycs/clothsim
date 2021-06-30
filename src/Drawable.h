@@ -24,11 +24,13 @@ namespace clothsim
                  Object3D &parent,
                  Magnum::SceneGraph::DrawableGroup3D &drawables);
 
-        void setVertexData(Corrade::Containers::Array<Vector3> indexedVertices, Corrade::Containers::Array<UnsignedInt> triangleIndices);
         void setVertexColors(Corrade::Containers::Array<Color3> indexedColors);
         void setVertexMarkerColors(Corrade::Containers::Array<Color3> vertexMarkerColors);
 
-        void drawVertexMarkers(const bool);
+        virtual Corrade::Containers::Array<UnsignedInt> getMeshIndices() const = 0;
+        virtual Corrade::Containers::Array<Magnum::Vector3> getMeshVertices() const = 0;
+
+        void drawVertexMarkers(bool);
 
     private:
         void draw(const Matrix4 &viewProjection, Magnum::SceneGraph::Camera3D &camera) override;
@@ -50,8 +52,6 @@ namespace clothsim
         Magnum::GL::Buffer m_vertexMarkerIndexBuffer;
         Magnum::GL::Mesh m_vertexMarkerMesh;
 
-        Corrade::Containers::Array<UnsignedInt> m_triangleIndices;
-        Corrade::Containers::Array<Vector3> m_indexedVertices;
         Corrade::Containers::Array<Color3> m_vertexMarkerColors;
     };
 } // namespace clothsim

@@ -28,6 +28,8 @@ namespace clothsim
 
         Corrade::Containers::Array<Magnum::Vector3> getParticlePositions(const Vector &state) const override;
 
+        Corrade::Containers::Array<UnsignedInt> getMeshIndices() const override;
+
         Vector evalDerivative(const Vector &state) const override;
         SparseMatrix evalJacobian(const Vector &state) const override;
 

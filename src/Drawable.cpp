@@ -26,22 +26,14 @@ namespace clothsim
         initVertexMarkers();
     }
 
-    void Drawable::setVertexData(Corrade::Containers::Array<Vector3> indexedVertices, Corrade::Containers::Array<UnsignedInt> triangleIndices)
-    {
-        m_indexedVertices = std::move(indexedVertices);
-        m_triangleIndices = std::move(triangleIndices);
-
-        initMesh();
-    }
-
     void Drawable::initMesh()
     {
         const Corrade::Containers::Array<Vector3> verticesExpanded{
-            Magnum::MeshTools::duplicate<UnsignedInt, Vector3>(m_triangleIndices, m_indexedVertices)};
+          Magnum::MeshTools::duplicate<UnsignedInt, Vector3>(getMeshIndices(), getMeshVertices())};
 
         const Corrade::Containers::Array<Vector3> normals{Magnum::MeshTools::generateFlatNormals(verticesExpanded)};
 
-        std::vector<Vector3> colors(m_triangleIndices.size(), Vector3{1.f, 1.f, 1.f});
+        std::vector<Vector3> colors(getMeshIndices().size(), Vector3{1.f, 1.f, 1.f});
 
         m_triangleBuffer.setData(Magnum::MeshTools::interleave(verticesExpanded, normals), Magnum::GL::BufferUsage::StaticDraw);
         m_colorBuffer.setData(colors, Magnum::GL::BufferUsage::StaticDraw);
@@ -49,7 +41,7 @@ namespace clothsim
         m_triangles.setPrimitive(Magnum::GL::MeshPrimitive::Triangles)
             .addVertexBuffer(m_triangleBuffer, 0, PhongIdShader::Position{}, PhongIdShader::Normal{})
             .addVertexBuffer(m_colorBuffer, 0, PhongIdShader::VertexColor{})
-            .setCount(static_cast<Int>(m_triangleIndices.size()));
+            .setCount(static_cast<Int>(getMeshIndices().size()));
     }
 
     void Drawable::initVertexMarkers()
@@ -75,7 +67,7 @@ namespace clothsim
 
     void Drawable::setVertexColors(Corrade::Containers::Array<Color3> indexedColors)
     {
-        const auto colorsExpanded{Magnum::MeshTools::duplicate<UnsignedInt, Color3>(m_triangleIndices, indexedColors)};
+        const auto colorsExpanded{Magnum::MeshTools::duplicate<UnsignedInt, Color3>(getMeshIndices(), indexedColors)};
 
         m_colorBuffer.setData(colorsExpanded, Magnum::GL::BufferUsage::StaticDraw);
     }
@@ -102,11 +94,13 @@ namespace clothsim
 
     void Drawable::drawVertexMarkers(const Matrix4 &viewProjection, const Magnum::SceneGraph::Camera3D &camera)
     {
-        for (UnsignedInt i = 0; i < m_indexedVertices.size(); ++i)
+        const Corrade::Containers::Array<Magnum::Vector3> vertices{getMeshVertices()};
+
+        for (UnsignedInt i{0}; i < vertices.size(); ++i)
         {
             m_vertexShader.setTransformationMatrix(
                               viewProjection * Matrix4::translation(viewProjection.inverted().backward() * 0.01f) *
-                              Matrix4::translation(m_indexedVertices[i]))
+                              Matrix4::translation(vertices[i]))
                 .setNormalMatrix(viewProjection.rotationScaling())
                 .setProjectionMatrix(camera.projectionMatrix())
                 .setLightPosition({13.0f, 2.0f, 5.0f});
@@ -122,6 +116,8 @@ namespace clothsim
 
     void Drawable::drawMesh(const Matrix4 &viewProjection, const Magnum::SceneGraph::Camera3D &camera)
     {
+        initMesh();
+
         Magnum::GL::Renderer::disable(Magnum::GL::Renderer::Feature::DepthTest);
         Magnum::GL::Renderer::disable(Magnum::GL::Renderer::Feature::FaceCulling);
         Magnum::GL::Renderer::enable(Magnum::GL::Renderer::Feature::Blending);

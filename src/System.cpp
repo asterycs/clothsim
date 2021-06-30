@@ -26,26 +26,16 @@ namespace clothsim
 		return m_state;
 	}
 
-	void System::setTriangleIndices(Corrade::Containers::Array<UnsignedInt> triangleIndices)
-	{
-		m_triangleIndices = std::move(triangleIndices);
-	}
-
 	void System::setState(Vector newState)
 	{
 		m_state = std::move(newState);
-
-		Corrade::Containers::Array<Magnum::Vector3> vertices{getParticlePositions(m_state)};
-		Corrade::Containers::Array<UnsignedInt> indices(m_triangleIndices.size());
-
-		// TODO: memcpy instead
-		for (UnsignedInt i = 0; i < m_triangleIndices.size(); ++i)
-		{
-			indices[i] = m_triangleIndices[i];
-		}
-
-		setVertexData(std::move(vertices), std::move(indices));
 	}
+
+	Corrade::Containers::Array<Magnum::Vector3> System::getMeshVertices() const
+	{
+		return Corrade::Containers::Array<Magnum::Vector3>{getParticlePositions(m_state)};
+	}
+
 
 	System::ScalarT System::getParticleMass() const
 	{

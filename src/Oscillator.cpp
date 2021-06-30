@@ -67,4 +67,8 @@ namespace clothsim
         return vertices;
     }
 
+    Corrade::Containers::Array<UnsignedInt> Oscillator::getMeshIndices() const {
+      return Corrade::Containers::Array<UnsignedInt>{};
+    }
+
 } // namespace clothsim

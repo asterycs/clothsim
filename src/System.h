@@ -40,14 +40,14 @@ namespace clothsim
 		virtual SparseMatrix evalJacobian(const Vector &state) const = 0;
 
 		virtual void reset() = 0;
+
 		virtual Corrade::Containers::Array<Magnum::Vector3> getParticlePositions(const Vector &state) const = 0;
+    Corrade::Containers::Array<Magnum::Vector3> getMeshVertices() const override;
 
 		virtual ScalarT getParticleMass() const;
 
 		const Vector &getState() const;
 		void setState(Vector newState);
-
-		void setTriangleIndices(Corrade::Containers::Array<UnsignedInt> triangleIndices);
 
 		void togglePinnedParticle(const UnsignedInt particleId);
 		void setPinnedParticle(const UnsignedInt particleId, const bool pinned);
@@ -58,7 +58,6 @@ namespace clothsim
 		void updateParticleMarkerColors();
 
 		Vector m_state{};
-		Corrade::Containers::Array<UnsignedInt> m_triangleIndices{};
 		std::set<UnsignedInt> m_pinnedParticleIds{};
 	};
 } // namespace clothsim

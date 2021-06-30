@@ -106,4 +106,8 @@ namespace clothsim
         return vertices;
     }
 
+    Corrade::Containers::Array<UnsignedInt> Planet::getMeshIndices() const {
+        return Corrade::Containers::Array<UnsignedInt>();
+    }
+
 } // namespace clothsim

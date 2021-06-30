@@ -2,9 +2,11 @@
 
 #include <Corrade/Containers/Array.h>
 
+#include <Corrade/Containers/Tags.h>
 #include <Magnum/EigenIntegration/Integration.h>
 
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <numeric>
 
@@ -129,23 +131,22 @@ namespace clothsim
 
 		const auto xSquares{m_size.x() - 1};
 		const auto ySquares{m_size.y() - 1};
-		auto triangleIndices{Corrade::Containers::Array<UnsignedInt>(2 * xSquares * ySquares * 3)};
+		m_triangleIndices = Corrade::Containers::Array<UnsignedInt>(2 * xSquares * ySquares * 3);
 
 		for (UnsignedInt triRow = 0; triRow < ySquares; ++triRow)
 		{
 			for (UnsignedInt triCol = 0; triCol < xSquares; ++triCol)
 			{
-				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3] = triRow * m_size.x() + triCol;
-				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 1] = triRow * m_size.x() + triCol + 1;
-				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 2] = triRow * m_size.x() + triCol + m_size.x();
+				m_triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3] = triRow * m_size.x() + triCol;
+				m_triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 1] = triRow * m_size.x() + triCol + 1;
+				m_triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 2] = triRow * m_size.x() + triCol + m_size.x();
 
-				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 3] = triRow * m_size.x() + triCol + 1;
-				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 4] = triRow * m_size.x() + triCol + 1 + m_size.x();
-				triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 5] = triRow * m_size.x() + triCol + m_size.x();
+				m_triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 3] = triRow * m_size.x() + triCol + 1;
+				m_triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 4] = triRow * m_size.x() + triCol + 1 + m_size.x();
+				m_triangleIndices[triRow * xSquares * 2 * 3 + triCol * 2 * 3 + 5] = triRow * m_size.x() + triCol + m_size.x();
 			}
 		}
 
-		setTriangleIndices(std::move(triangleIndices));
 		setState(std::move(state));
 		clearPinnedParticles();
 
@@ -275,6 +276,14 @@ namespace clothsim
 		}
 
 		return positions;
+	}
+
+	Corrade::Containers::Array<UnsignedInt> Cloth::getMeshIndices() const {
+    Corrade::Containers::Array<UnsignedInt> meshIndices{Corrade::Containers::NoInit, m_triangleIndices.size()};
+
+    std::memcpy(meshIndices.data(), m_triangleIndices.data(), m_triangleIndices.size() * sizeof(UnsignedInt));
+
+		return meshIndices;
 	}
 
 } // namespace clothsim
