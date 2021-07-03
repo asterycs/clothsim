@@ -3,12 +3,12 @@
 
 #include <Corrade/Containers/Array.h>
 
-#include <Magnum/Magnum.h>
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/SceneGraph/Drawable.h>
 #include <Magnum/SceneGraph/MatrixTransformation3D.h>
 
 #include <Magnum/GL/Mesh.h>
+#include <Magnum/GL/Buffer.h>
 
 #include "Shaders.h"
 #include "Util.h"
@@ -22,14 +22,11 @@ public:
   Drawable(PhongIdShader &phongShader, VertexMarkerShader &vertexShader,
            Object3D &parent, Magnum::SceneGraph::DrawableGroup3D &drawables);
 
-  void
-  setVertexMarkerColors(Corrade::Containers::Array<Color3> vertexMarkerColors);
-
   virtual Corrade::Containers::Array<UnsignedInt> getMeshIndices() const = 0;
   virtual Corrade::Containers::Array<Magnum::Vector3>
   getMeshVertices() const = 0;
-  virtual Corrade::Containers::Array<Magnum::Color3>
-  getVertexMarkerColors() const = 0;
+  virtual const Corrade::Containers::Array<Magnum::Color3>&
+  getVertexMarkerColors() = 0;
 
   void drawVertexMarkers(bool);
 

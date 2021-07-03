@@ -11,8 +11,6 @@ System::System(PhongIdShader &phongShader, VertexMarkerShader &vertexShader,
                Magnum::SceneGraph::DrawableGroup3D &drawableGroup)
     : Drawable(phongShader, vertexShader, parent, drawableGroup) {}
 
-System::~System() {}
-
 const System::Vector &System::getState() const { return m_state; }
 
 void System::setState(Vector newState) { m_state = std::move(newState); }
@@ -30,14 +28,10 @@ void System::togglePinnedParticle(const UnsignedInt particleId) {
     m_pinnedParticleIds.erase(pos);
   else
     m_pinnedParticleIds.insert(particleId);
-
-  updateParticleMarkerColors();
 }
 
 void System::clearPinnedParticles() {
   m_pinnedParticleIds.clear();
-
-  updateParticleMarkerColors();
 }
 
 void System::setPinnedParticle(const UnsignedInt particleId,
@@ -49,27 +43,26 @@ void System::setPinnedParticle(const UnsignedInt particleId,
   } else {
     m_pinnedParticleIds.insert(particleId);
   }
-
-  updateParticleMarkerColors();
 }
 
 const std::set<UnsignedInt> &System::getPinnedParticleIds() const {
   return m_pinnedParticleIds;
 }
 
-void System::updateParticleMarkerColors() {
+const Corrade::Containers::Array<Magnum::Color3>& System::getVertexMarkerColors() {
+  // TODO: Add a nParticles getter
   const auto nVertices{getParticlePositions(getState()).size()};
-  auto colors{Corrade::Containers::Array<Color3>(Corrade::Containers::NoInit,
-                                                 nVertices)};
+  m_vertexMarkerColors = Corrade::Containers::Array<Color3>{Corrade::Containers::NoInit,
+                                                 nVertices};
 
-  for (std::size_t i = 0; i < nVertices; ++i) {
+  for (std::size_t i{0}; i < nVertices; ++i) {
     if (m_pinnedParticleIds.find(i) == m_pinnedParticleIds.end()) {
-      colors[i] = Color3{1.0f, 1.0f, 1.0f};
+      m_vertexMarkerColors[i] = Color3{1.0f, 1.0f, 1.0f};
     } else {
-      colors[i] = Color3{1.0f, 0.0f, 0.0f};
+      m_vertexMarkerColors[i] = Color3{1.0f, 0.0f, 0.0f};
     }
   }
 
-  setVertexMarkerColors(std::move(colors));
+  return m_vertexMarkerColors;
 }
 } // namespace clothsim

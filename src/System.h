@@ -30,7 +30,6 @@ public:
 
   System(PhongIdShader &phongShader, VertexMarkerShader &vertexShader,
          Object3D &parent, Magnum::SceneGraph::DrawableGroup3D &drawableGroup);
-  virtual ~System() override;
 
   virtual Vector evalDerivative(const Vector &state) const = 0;
   virtual SparseMatrix evalJacobian(const Vector &state) const = 0;
@@ -40,6 +39,7 @@ public:
   virtual Corrade::Containers::Array<Magnum::Vector3>
   getParticlePositions(const Vector &state) const = 0;
   Corrade::Containers::Array<Magnum::Vector3> getMeshVertices() const override;
+  const Corrade::Containers::Array<Magnum::Color3>& getVertexMarkerColors() override;
 
   virtual ScalarT getParticleMass() const;
 
@@ -52,10 +52,9 @@ public:
   void clearPinnedParticles();
 
 private:
-  void updateParticleMarkerColors();
-
   Vector m_state{};
   std::set<UnsignedInt> m_pinnedParticleIds{};
+  Corrade::Containers::Array<Magnum::Color3> m_vertexMarkerColors;
 };
 } // namespace clothsim
 

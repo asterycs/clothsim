@@ -98,7 +98,7 @@ void Drawable::drawVertexMarkers(const Matrix4 &viewProjection,
         .setProjectionMatrix(camera.projectionMatrix())
         .setLightPosition({13.0f, 2.0f, 5.0f});
 
-    const auto color = m_vertexMarkerColors[i];
+    const Color3 color{getVertexMarkerColors()[i]};
     m_vertexShader.setColor(color);
 
     m_vertexShader.setObjectId(static_cast<Int>(i));
