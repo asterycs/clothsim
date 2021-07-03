@@ -11,33 +11,31 @@
 
 #include <vector>
 
-namespace clothsim
-{
-    class PhongShader;
-    class VertexShader;
-    using namespace Magnum;
+namespace clothsim {
+class PhongShader;
+class VertexShader;
+using namespace Magnum;
 
-    class Oscillator : public System
-    {
-    public:
-        Oscillator(PhongIdShader &phongShader,
-                   VertexMarkerShader &vertexShader,
-                   Object3D &parent,
-                   Magnum::SceneGraph::DrawableGroup3D &drawableGroup);
-        ~Oscillator() override;
+class Oscillator : public System {
+public:
+  Oscillator(PhongIdShader &phongShader, VertexMarkerShader &vertexShader,
+             Object3D &parent,
+             Magnum::SceneGraph::DrawableGroup3D &drawableGroup);
+  ~Oscillator() override;
 
-        Corrade::Containers::Array<Magnum::Vector3> getParticlePositions(const Vector &state) const override;
+  Corrade::Containers::Array<Magnum::Vector3>
+  getParticlePositions(const Vector &state) const override;
 
-        Corrade::Containers::Array<UnsignedInt> getMeshIndices() const override;
+  Corrade::Containers::Array<UnsignedInt> getMeshIndices() const override;
 
-        Vector evalDerivative(const Vector &state) const override;
-        SparseMatrix evalJacobian(const Vector &state) const override;
+  Vector evalDerivative(const Vector &state) const override;
+  SparseMatrix evalJacobian(const Vector &state) const override;
 
-        void reset() override;
+  void reset() override;
 
-    private:
-        ScalarT m_radius{1.0};
-    };
+private:
+  ScalarT m_radius{1.0};
+};
 } // namespace clothsim
 
 #endif
