@@ -3,6 +3,7 @@
 
 #include <Corrade/Containers/Array.h>
 
+#include <Magnum/Magnum.h>
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/SceneGraph/Drawable.h>
 #include <Magnum/SceneGraph/MatrixTransformation3D.h>
@@ -24,11 +25,11 @@ namespace clothsim
                  Object3D &parent,
                  Magnum::SceneGraph::DrawableGroup3D &drawables);
 
-        void setVertexColors(Corrade::Containers::Array<Color3> indexedColors);
         void setVertexMarkerColors(Corrade::Containers::Array<Color3> vertexMarkerColors);
 
         virtual Corrade::Containers::Array<UnsignedInt> getMeshIndices() const = 0;
         virtual Corrade::Containers::Array<Magnum::Vector3> getMeshVertices() const = 0;
+        virtual Corrade::Containers::Array<Magnum::Color3> getVertexMarkerColors() const = 0;
 
         void drawVertexMarkers(bool);
 
@@ -38,6 +39,7 @@ namespace clothsim
         void drawVertexMarkers(const Matrix4 &viewProjection, const Magnum::SceneGraph::Camera3D &camera);
 
         void initVertexMarkers();
+        void initVertexMarkerColors();
         void initMesh();
 
         bool m_drawVertexMarkers;
@@ -51,8 +53,6 @@ namespace clothsim
         Magnum::GL::Buffer m_vertexMarkerVertexBuffer;
         Magnum::GL::Buffer m_vertexMarkerIndexBuffer;
         Magnum::GL::Mesh m_vertexMarkerMesh;
-
-        Corrade::Containers::Array<Color3> m_vertexMarkerColors;
     };
 } // namespace clothsim
 

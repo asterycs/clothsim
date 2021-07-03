@@ -65,18 +65,6 @@ namespace clothsim
         m_vertexMarkerMesh.setIndexBuffer(m_vertexMarkerIndexBuffer, 0, Magnum::MeshIndexType::UnsignedInt);
     }
 
-    void Drawable::setVertexColors(Corrade::Containers::Array<Color3> indexedColors)
-    {
-        const auto colorsExpanded{Magnum::MeshTools::duplicate<UnsignedInt, Color3>(getMeshIndices(), indexedColors)};
-
-        m_colorBuffer.setData(colorsExpanded, Magnum::GL::BufferUsage::StaticDraw);
-    }
-
-    void Drawable::setVertexMarkerColors(Corrade::Containers::Array<Color3> vertexMarkerColors)
-    {
-        m_vertexMarkerColors = std::move(vertexMarkerColors);
-    }
-
     void Drawable::drawVertexMarkers(const bool draw)
     {
         m_drawVertexMarkers = draw;
